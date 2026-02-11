@@ -37,6 +37,13 @@ export async function sendMessageTencentIM(
 ): Promise<{ ok: boolean; error?: string; messageId?: string }> {
   const { cfg, to, text, accountId, runtime, fromUserId } = opts;
 
+  console.error("[DEBUG] sendMessageTencentIM called with opts:", JSON.stringify(opts, null, 2));
+  console.error("[DEBUG] to value:", to, "type:", typeof to);
+
+  if (!to) {
+    return { ok: false, error: "Target (to) is required, got: " + String(to) };
+  }
+
   const account = resolveTencentAccount({ cfg, accountId });
   if (!account.configured) {
     return { ok: false, error: "Account not configured" };
@@ -111,6 +118,10 @@ export async function sendMediaTencentIM(
   opts: SendMediaOpts,
 ): Promise<{ ok: boolean; error?: string; messageId?: string }> {
   const { cfg, to, mediaUrl, mediaType, fileName, accountId, runtime, fromUserId } = opts;
+
+  if (!to) {
+    return { ok: false, error: "Target (to) is required" };
+  }
 
   const account = resolveTencentAccount({ cfg, accountId });
   if (!account.configured) {

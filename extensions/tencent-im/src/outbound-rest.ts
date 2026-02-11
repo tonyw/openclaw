@@ -3,10 +3,10 @@ import { sendMessageTencentIM, sendMediaTencentIM } from "./send-rest.js";
 import { formatTencentTarget } from "./targets.js";
 
 export const tencentIMOutbound: ChannelOutbound = {
-  async sendText({ cfg, accountId, target, text, runtime, replyTo }) {
+  async sendText({ cfg, accountId, to, text, runtime, replyTo }) {
     const result = await sendMessageTencentIM({
       cfg,
-      to: target,
+      to: to ?? "",
       text,
       accountId,
       runtime,
@@ -20,10 +20,10 @@ export const tencentIMOutbound: ChannelOutbound = {
     return { ok: true, messageId: result.messageId };
   },
 
-  async sendMedia({ cfg, accountId, target, mediaUrl, mediaType, runtime }) {
+  async sendMedia({ cfg, accountId, to, mediaUrl, mediaType, runtime }) {
     const result = await sendMediaTencentIM({
       cfg,
-      to: target,
+      to: to ?? "",
       mediaUrl,
       mediaType: mediaType === "image" ? "image" : "file",
       accountId,
