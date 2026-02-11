@@ -4,22 +4,6 @@ function isOpenAiCompletionsModel(model: Model<Api>): model is Model<"openai-com
   return model.api === "openai-completions";
 }
 
-/**
- * Returns true only for endpoints that are confirmed to be native OpenAI
- * infrastructure and therefore accept the `developer` message role.
- * Azure OpenAI uses the Chat Completions API and does NOT accept `developer`.
- * All other openai-completions backends (proxies, Qwen, GLM, DeepSeek, etc.)
- * only support the standard `system` role.
- */
-function isOpenAINativeEndpoint(baseUrl: string): boolean {
-  try {
-    const host = new URL(baseUrl).hostname.toLowerCase();
-    return host === "api.openai.com";
-  } catch {
-    return false;
-  }
-}
-
 function isAnthropicMessagesModel(model: Model<Api>): model is Model<"anthropic-messages"> {
   return model.api === "anthropic-messages";
 }
@@ -36,6 +20,43 @@ function isAnthropicMessagesModel(model: Model<Api>): model is Model<"anthropic-
 function normalizeAnthropicBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/v1\/?$/, "");
 }
+
+/**
+ * Returns true when the provider/URL is a third-party OpenAI-compatible endpoint
+ * that does NOT support the `developer` role (only `system`/`user`/`assistant`/`tool`).
+ * The pi-ai SDK auto-detects `supportsDeveloperRole: true` for any URL not in its
+ * built-in non-standard list, so we patch it here for known incompatible hosts.
+ */
+function isNoDeveloperRoleProvider(baseUrl: string, provider: string): boolean {
+  const url = baseUrl.toLowerCase();
+  const prov = provider.toLowerCase();
+  return (
+    prov === "zai" ||
+    url.includes("api.z.ai") ||
+    // Volcengine / Doubao (ByteDance)
+    url.includes("volces.com") ||
+    // Alibaba Cloud DashScope
+    url.includes("dashscope.aliyuncs.com") ||
+    // SiliconFlow
+    url.includes("siliconflow.cn") ||
+    // MoonShot / Kimi
+    url.includes("moonshot.cn") ||
+    url.includes("api.moonshot") ||
+    // Baidu Qianfan
+    url.includes("qianfan.baidubce.com") ||
+    // Zhipu AI
+    url.includes("bigmodel.cn") ||
+    url.includes("zhipuai.cn") ||
+    // Tencent Hunyuan
+    url.includes("hunyuan.tencentcloudapi.com") ||
+    // DeepSeek
+    url.includes("deepseek.com") ||
+    // Minimax
+    url.includes("minimaxi.com") ||
+    url.includes("minimax.io")
+  );
+}
+
 export function normalizeModelCompat(model: Model<Api>): Model<Api> {
   const baseUrl = model.baseUrl ?? "";
 
@@ -48,7 +69,7 @@ export function normalizeModelCompat(model: Model<Api>): Model<Api> {
     }
   }
 
-  if (!isOpenAiCompletionsModel(model)) {
+  if (!isNoDeveloperRoleProvider(baseUrl, model.provider) || !isOpenAiCompletionsModel(model)) {
     return model;
   }
 

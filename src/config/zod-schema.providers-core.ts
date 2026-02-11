@@ -178,6 +178,7 @@ export const TelegramAccountSchemaBase = z
     defaultTo: z.union([z.string(), z.number()]).optional(),
     groupAllowFrom: z.array(z.union([z.string(), z.number()])).optional(),
     groupPolicy: GroupPolicySchema.optional().default("allowlist"),
+    requireMention: z.boolean().optional(),
     historyLimit: z.number().int().min(0).optional(),
     dmHistoryLimit: z.number().int().min(0).optional(),
     dms: z.record(z.string(), DmConfigSchema.optional()).optional(),
@@ -456,6 +457,7 @@ export const DiscordAccountSchema = z
     allowBots: z.union([z.boolean(), z.literal("mentions")]).optional(),
     dangerouslyAllowNameMatching: z.boolean().optional(),
     groupPolicy: GroupPolicySchema.optional().default("allowlist"),
+    requireMention: z.boolean().optional(),
     historyLimit: z.number().int().min(0).optional(),
     dmHistoryLimit: z.number().int().min(0).optional(),
     dms: z.record(z.string(), DmConfigSchema.optional()).optional(),
@@ -1512,3 +1514,105 @@ export const MSTeamsConfigSchema = z
         'channels.msteams.dmPolicy="allowlist" requires channels.msteams.allowFrom to contain at least one sender ID',
     });
   });
+
+export const TencentIMGroupSchema = z
+  .object({
+    requireMention: z.boolean().optional(),
+    groupPolicy: GroupPolicySchema.optional(),
+    tools: ToolPolicySchema,
+    toolsBySender: ToolPolicyBySenderSchema,
+    skills: z.array(z.string()).optional(),
+    enabled: z.boolean().optional(),
+    allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
+    systemPrompt: z.string().optional(),
+  })
+  .strict();
+
+export const TencentIMAccountSchemaBase = z
+  .object({
+    name: z.string().optional(),
+    capabilities: z.array(z.string()).optional(),
+    markdown: MarkdownConfigSchema,
+    enabled: z.boolean().optional(),
+    commands: ProviderCommandsSchema,
+    configWrites: z.boolean().optional(),
+    dmPolicy: DmPolicySchema.optional().default("pairing"),
+    sdkAppId: z.string().optional(),
+    secretKey: z.string().optional(),
+    adminUserId: z.string().optional(),
+    userId: z.string().optional(),
+    userSig: z.string().optional(),
+    connectionMode: z.enum(["webhook", "websocket"]).optional().default("webhook"),
+    replyToMode: ReplyToModeSchema.optional(),
+    groups: z.record(z.string(), TencentIMGroupSchema.optional()).optional(),
+    allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
+    groupAllowFrom: z.array(z.union([z.string(), z.number()])).optional(),
+    groupPolicy: GroupPolicySchema.optional().default("allowlist"),
+    requireMention: z.boolean().optional(),
+    historyLimit: z.number().int().min(0).optional(),
+    dmHistoryLimit: z.number().int().min(0).optional(),
+    dms: z.record(z.string(), DmConfigSchema.optional()).optional(),
+    textChunkLimit: z.number().int().positive().optional(),
+    chunkMode: z.enum(["length", "newline"]).optional(),
+    blockStreaming: z.boolean().optional(),
+    draftChunk: BlockStreamingChunkSchema.optional(),
+    blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
+    streamMode: z.enum(["off", "partial", "block"]).optional(),
+    mediaMaxMb: z.number().positive().optional(),
+    timeoutSeconds: z.number().int().positive().optional(),
+    retry: RetryConfigSchema,
+    webhookPort: z.number().int().positive().optional(),
+    webhookPath: z.string().optional(),
+    webhookSecret: z.string().optional(),
+    webhookUrl: z.string().optional(),
+    heartbeat: ChannelHeartbeatVisibilitySchema,
+    responsePrefix: z.string().optional(),
+  })
+  .strict();
+
+export const TencentIMAccountSchema = TencentIMAccountSchemaBase.superRefine((value, ctx) => {
+  requireOpenAllowFrom({
+    policy: value.dmPolicy,
+    allowFrom: value.allowFrom,
+    ctx,
+    path: ["allowFrom"],
+    message:
+      'channels["tencent-im"].dmPolicy="open" requires channels["tencent-im"].allowFrom to include "*"',
+  });
+  requireAllowlistAllowFrom({
+    policy: value.dmPolicy,
+    allowFrom: value.allowFrom,
+    ctx,
+    path: ["allowFrom"],
+    message:
+      'channels["tencent-im"].dmPolicy="allowlist" requires channels["tencent-im"].allowFrom to be non-empty',
+  });
+});
+
+export const TencentIMConfigSchema = TencentIMAccountSchema.extend({
+  accounts: z.record(z.string(), TencentIMAccountSchema.optional()).optional(),
+}).superRefine((value, ctx) => {
+  if (value.accounts) {
+    for (const [accountId, account] of Object.entries(value.accounts)) {
+      if (!account) {
+        continue;
+      }
+      const effectivePolicy = account.dmPolicy ?? value.dmPolicy;
+      const effectiveAllowFrom = account.allowFrom ?? value.allowFrom;
+      requireOpenAllowFrom({
+        policy: effectivePolicy,
+        allowFrom: effectiveAllowFrom,
+        ctx,
+        path: ["accounts", accountId, "allowFrom"],
+        message: `channels["tencent-im"].accounts.${accountId}.dmPolicy="open" requires allowFrom to include "*"`,
+      });
+      requireAllowlistAllowFrom({
+        policy: effectivePolicy,
+        allowFrom: effectiveAllowFrom,
+        ctx,
+        path: ["accounts", accountId, "allowFrom"],
+        message: `channels["tencent-im"].accounts.${accountId}.dmPolicy="allowlist" requires allowFrom to be non-empty`,
+      });
+    }
+  }
+});

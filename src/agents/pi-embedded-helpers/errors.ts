@@ -106,6 +106,14 @@ export function isContextOverflowError(errorMessage?: string): boolean {
     (lower.includes("max_tokens") && lower.includes("exceed") && lower.includes("context")) ||
     (lower.includes("input length") && lower.includes("exceed") && lower.includes("context")) ||
     (lower.includes("413") && lower.includes("too large")) ||
+    // Minimax and similar providers: per-message token limit exceeded
+    lower.includes("exceed max message tokens") ||
+    lower.includes("total tokens of image and text exceed") ||
+    // Minimax Chinese error messages
+    lower.includes("tokens超出限制") ||
+    lower.includes("token数量超出") ||
+    lower.includes("输入超出模型最大") ||
+    lower.includes("输入长度超出") ||
     // Anthropic API and OpenAI-compatible providers (e.g. ZhipuAI/GLM) return this stop reason
     // when the context window is exceeded. pi-ai surfaces it as "Unhandled stop reason: model_context_window_exceeded".
     lower.includes("context_window_exceeded") ||
@@ -114,7 +122,10 @@ export function isContextOverflowError(errorMessage?: string): boolean {
     errorMessage.includes("上下文超出") ||
     errorMessage.includes("上下文长度超") ||
     errorMessage.includes("超出最大上下文") ||
-    errorMessage.includes("请压缩上下文")
+    errorMessage.includes("请压缩上下文") ||
+    errorMessage.includes("超出上下文窗口") ||
+    errorMessage.includes("文本过长") ||
+    errorMessage.includes("tokens超出")
   );
 }
 

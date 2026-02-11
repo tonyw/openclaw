@@ -92,8 +92,13 @@ const listPluginChannelAliases = (): string[] => {
   return registry.channels.flatMap((entry) => entry.plugin.meta.aliases ?? []);
 };
 
-export const listDeliverableMessageChannels = (): ChannelId[] =>
-  Array.from(new Set([...CHANNEL_IDS, ...listPluginChannelIds()]));
+export const listDeliverableMessageChannels = (): ChannelId[] => {
+  // CHANNEL_IDS is a readonly array, convert to mutable array
+  const builtInChannels: string[] = Array.from(CHANNEL_IDS);
+  const pluginChannels = listPluginChannelIds();
+  const allChannels = [...builtInChannels, ...pluginChannels];
+  return Array.from(new Set(allChannels)) as ChannelId[];
+};
 
 export type DeliverableMessageChannel = ChannelId;
 

@@ -14,6 +14,7 @@ export const CHAT_CHANNEL_ORDER = [
   "signal",
   "imessage",
   "line",
+  "tencent-im",
 ] as const;
 
 export type ChatChannelId = (typeof CHAT_CHANNEL_ORDER)[number];
@@ -118,6 +119,16 @@ const CHAT_CHANNEL_META: Record<ChatChannelId, ChannelMeta> = {
     blurb: "LINE Messaging API webhook bot.",
     systemImage: "message",
   },
+  "tencent-im": {
+    id: "tencent-im",
+    label: "Tencent IM",
+    selectionLabel: "Tencent IM (腾讯云IM)",
+    detailLabel: "Tencent Cloud IM",
+    docsPath: "/channels/tencent-im",
+    docsLabel: "tencent-im",
+    blurb: "Tencent Cloud instant messaging via REST API.",
+    systemImage: "message",
+  },
 };
 
 export const CHAT_CHANNEL_ALIASES: Record<string, ChatChannelId> = {
@@ -125,6 +136,8 @@ export const CHAT_CHANNEL_ALIASES: Record<string, ChatChannelId> = {
   "internet-relay-chat": "irc",
   "google-chat": "googlechat",
   gchat: "googlechat",
+  tim: "tencent-im",
+  tencent: "tencent-im",
 };
 
 const normalizeChannelKey = (raw?: string | null): string | undefined => {
@@ -169,6 +182,13 @@ export function normalizeAnyChannelId(raw?: string | null): ChannelId | null {
     return null;
   }
 
+  // First check built-in channels
+  const builtIn = normalizeChatChannelId(raw);
+  if (builtIn) {
+    return builtIn;
+  }
+
+  // Then check plugin registry
   const registry = requireActivePluginRegistry();
   const hit = registry.channels.find((entry) => {
     const id = String(entry.plugin.id ?? "")

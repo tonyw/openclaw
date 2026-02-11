@@ -17,7 +17,8 @@ export type MessageChannelSelectionSource =
 const getMessageChannels = () => listDeliverableMessageChannels();
 
 function isKnownChannel(value: string): boolean {
-  return getMessageChannels().includes(value as MessageChannelId);
+  const channels = getMessageChannels();
+  return channels.some((ch) => String(ch) === String(value));
 }
 
 function resolveKnownChannel(value?: string | null): MessageChannelId | undefined {
