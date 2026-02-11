@@ -5,7 +5,10 @@ export type TencentTarget = { type: "user"; userId: string } | { type: "group"; 
  * Returns the normalized target string (e.g., "user:xxx" or "group:xxx").
  * Used by the messaging system for target normalization.
  */
-export function normalizeTencentTarget(raw: string): string | null {
+export function normalizeTencentTarget(raw: string | undefined | null): string | null {
+  if (!raw) {
+    return null;
+  }
   const trimmed = raw.trim();
   if (!trimmed) {
     return null;
