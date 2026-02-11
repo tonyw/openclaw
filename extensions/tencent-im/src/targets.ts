@@ -47,24 +47,28 @@ export function formatTencentTarget(target: TencentTarget): string {
   return `group:${target.groupId}`;
 }
 
-export function looksLikeTencentId(id: string): boolean {
+export function looksLikeTencentId(id: string | undefined | null): boolean {
+  if (!id) return false;
   if (id.startsWith("user:") || id.startsWith("group:")) return true;
   if (id.startsWith("C2C") || id.startsWith("GROUP")) return true;
   // Tencent IM user IDs are typically numeric or alphanumeric
   return /^[a-zA-Z0-9_-]+$/.test(id);
 }
 
-export function looksLikeGroupId(id: string): boolean {
+export function looksLikeGroupId(id: string | undefined | null): boolean {
+  if (!id) return false;
   return id.startsWith("group:") || id.startsWith("GROUP");
 }
 
-export function extractUserId(id: string): string {
+export function extractUserId(id: string | undefined | null): string {
+  if (!id) return "";
   if (id.startsWith("user:")) return id.slice(5);
   if (id.startsWith("C2C")) return id.slice(3);
   return id;
 }
 
-export function extractGroupId(id: string): string {
+export function extractGroupId(id: string | undefined | null): string {
+  if (!id) return "";
   if (id.startsWith("group:")) return id.slice(6);
   if (id.startsWith("GROUP")) return id.slice(5);
   return id;
