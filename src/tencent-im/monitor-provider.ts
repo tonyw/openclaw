@@ -145,6 +145,16 @@ export async function handleTencentIMWebhook(
     return;
   }
 
+  // 2.1 Filter: Only process messages sent TO the configured bot user
+  // For C2C chats, the message must be addressed to the bot's userId
+  // For group chats, all messages are processed (the bot is in the group)
+  if (!message.isGroup && message.to !== account.userId) {
+    runtime?.log?.(
+      `[tencent-im] Skipping C2C message not addressed to bot: to=${message.to}, bot=${account.userId}`,
+    );
+    return;
+  }
+
   // 3. Policy check
   const allowed = await checkPolicy({ cfg, account, message, runtime });
   if (!allowed) {
