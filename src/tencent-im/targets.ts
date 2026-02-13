@@ -1,9 +1,7 @@
 export type TencentTarget = { type: "user"; userId: string } | { type: "group"; groupId: string };
 
 /**
- * Normalize a Tencent IM target string.
- * Returns the normalized target string (e.g., "user:xxx" or "group:xxx").
- * Used by the messaging system for target normalization.
+ * 规范化 Tencent IM 目标字符串
  */
 export function normalizeTencentTarget(raw: string | undefined | null): string | null {
   if (!raw) {
@@ -18,12 +16,12 @@ export function normalizeTencentTarget(raw: string | undefined | null): string |
 
   // user:userId
   if (lowered.startsWith("user:")) {
-    return trimmed; // Keep the prefix for consistency
+    return trimmed;
   }
 
   // group:groupId
   if (lowered.startsWith("group:")) {
-    return trimmed; // Keep the prefix for consistency
+    return trimmed;
   }
 
   // C2Cxxx -> user:xxx
@@ -36,7 +34,7 @@ export function normalizeTencentTarget(raw: string | undefined | null): string |
     return `group:${trimmed.slice(5)}`;
   }
 
-  // Default: assume it's a user ID
+  // 默认: 假设为用户 ID
   return `user:${trimmed}`;
 }
 
@@ -48,28 +46,47 @@ export function formatTencentTarget(target: TencentTarget): string {
 }
 
 export function looksLikeTencentId(id: string | undefined | null): boolean {
-  if (!id) return false;
-  if (id.startsWith("user:") || id.startsWith("group:")) return true;
-  if (id.startsWith("C2C") || id.startsWith("GROUP")) return true;
-  // Tencent IM user IDs are typically numeric or alphanumeric
+  if (!id) {
+    return false;
+  }
+  if (id.startsWith("user:") || id.startsWith("group:")) {
+    return true;
+  }
+  if (id.startsWith("C2C") || id.startsWith("GROUP")) {
+    return true;
+  }
   return /^[a-zA-Z0-9_-]+$/.test(id);
 }
 
 export function looksLikeGroupId(id: string | undefined | null): boolean {
-  if (!id) return false;
+  if (!id) {
+    return false;
+  }
   return id.startsWith("group:") || id.startsWith("GROUP");
 }
 
 export function extractUserId(id: string | undefined | null): string {
-  if (!id) return "";
-  if (id.startsWith("user:")) return id.slice(5);
-  if (id.startsWith("C2C")) return id.slice(3);
+  if (!id) {
+    return "";
+  }
+  if (id.startsWith("user:")) {
+    return id.slice(5);
+  }
+  if (id.startsWith("C2C")) {
+    return id.slice(3);
+  }
   return id;
 }
 
 export function extractGroupId(id: string | undefined | null): string {
-  if (!id) return "";
-  if (id.startsWith("group:")) return id.slice(6);
-  if (id.startsWith("GROUP")) return id.slice(5);
+  if (!id) {
+    return "";
+  }
+  if (id.startsWith("group:")) {
+    return id.slice(6);
+  }
+  if (id.startsWith("GROUP")) {
+    return id.slice(5);
+  }
   return id;
 }
