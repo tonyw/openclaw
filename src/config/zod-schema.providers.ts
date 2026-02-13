@@ -11,6 +11,7 @@ import {
   SignalConfigSchema,
   SlackConfigSchema,
   TelegramConfigSchema,
+  TencentIMConfigSchema,
 } from "./zod-schema.providers-core.js";
 import { WhatsAppConfigSchema } from "./zod-schema.providers-whatsapp.js";
 
@@ -37,6 +38,7 @@ export const ChannelsSchema = z
     imessage: IMessageConfigSchema.optional(),
     bluebubbles: BlueBubblesConfigSchema.optional(),
     msteams: MSTeamsConfigSchema.optional(),
+    "tencent-im": TencentIMConfigSchema.optional(),
   })
   .passthrough() // Allow extension channel configs (nostr, matrix, zalo, etc.)
   .optional();

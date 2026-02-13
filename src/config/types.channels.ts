@@ -7,6 +7,7 @@ import type { MSTeamsConfig } from "./types.msteams.js";
 import type { SignalConfig } from "./types.signal.js";
 import type { SlackConfig } from "./types.slack.js";
 import type { TelegramConfig } from "./types.telegram.js";
+import type { TencentIMConfig } from "./types.tencent-im.js";
 import type { WhatsAppConfig } from "./types.whatsapp.js";
 
 export type ChannelHeartbeatVisibilityConfig = {
@@ -48,6 +49,7 @@ export type ChannelsConfig = {
   signal?: SignalConfig;
   imessage?: IMessageConfig;
   msteams?: MSTeamsConfig;
+  "tencent-im"?: TencentIMConfig;
   // Extension channels use dynamic keys - use ExtensionChannelConfig in extensions
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;

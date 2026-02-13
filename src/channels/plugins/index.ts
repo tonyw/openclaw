@@ -1,6 +1,10 @@
 import type { ChannelId, ChannelPlugin } from "./types.js";
 import { requireActivePluginRegistry } from "../../plugins/runtime.js";
+import { tencentIMPlugin } from "../../tencent-im/plugin.js";
 import { CHAT_CHANNEL_ORDER, type ChatChannelId, normalizeAnyChannelId } from "../registry.js";
+
+// Built-in channels that don't require plugin discovery
+const BUILT_IN_CHANNELS: ChannelPlugin[] = [tencentIMPlugin];
 
 // Channel plugins registry (runtime).
 //
@@ -8,10 +12,12 @@ import { CHAT_CHANNEL_ORDER, type ChatChannelId, normalizeAnyChannelId } from ".
 // Shared code paths (reply flow, command auth, sandbox explain) should depend on `src/channels/dock.ts`
 // instead, and only call `getChannelPlugin()` at execution boundaries.
 //
-// Channel plugins are registered by the plugin loader (extensions/ or configured paths).
+// Channel plugins are registered by the plugin loader (extensions/ or configured paths)
+// AND built-in channels defined above.
 function listPluginChannels(): ChannelPlugin[] {
   const registry = requireActivePluginRegistry();
-  return registry.channels.map((entry) => entry.plugin);
+  const pluginChannels = registry.channels.map((entry) => entry.plugin);
+  return [...BUILT_IN_CHANNELS, ...pluginChannels];
 }
 
 function dedupeChannels(channels: ChannelPlugin[]): ChannelPlugin[] {
