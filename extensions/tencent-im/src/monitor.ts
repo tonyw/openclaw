@@ -172,10 +172,28 @@ async function startWebhookMode(opts: {
   const path = account.webhookPath ?? "/webhook/tencent-im";
 
   const server = http.createServer((req, res) => {
-    if (req.url !== path || req.method !== "POST") {
+    // Parse URL to separate pathname and query string
+    // req.url may contain query parameters like: /webhook/tencent-im?CallbackCommand=...
+    const requestPath = req.url?.split("?")[0] || "";
+    const queryString = req.url?.includes("?") ? req.url.split("?")[1] : "";
+    const queryParams = queryString ? new URLSearchParams(queryString) : new URLSearchParams();
+
+    // Check if path matches and method is POST
+    if (requestPath !== path || req.method !== "POST") {
+      runtime?.log?.(
+        `Tencent IM [${accountId}]: Rejected request - path: ${requestPath}, expected: ${path}, method: ${req.method}`,
+      );
       res.writeHead(404);
       res.end();
       return;
+    }
+
+    // Log query parameters for debugging (e.g., CallbackCommand from URL)
+    if (queryParams.toString()) {
+      const callbackCommand = queryParams.get("CallbackCommand");
+      runtime?.log?.(
+        `Tencent IM [${accountId}]: Webhook query params - CallbackCommand: ${callbackCommand || "(未设置)"}, All: ${queryParams.toString()}`,
+      );
     }
 
     let body = "";
@@ -204,7 +222,32 @@ async function startWebhookMode(opts: {
 
   await new Promise<void>((resolve, reject) => {
     server.listen(port, "0.0.0.0", () => {
-      runtime?.log?.(`Tencent IM [${accountId}]: Webhook server listening on 0.0.0.0:${port}`);
+      // 构建 Webhook URL（尝试获取公网地址，如果没有则显示本地地址）
+      const localUrl = `http://127.0.0.1:${port}${path}`;
+      const lanUrl = `http://0.0.0.0:${port}${path}`;
+
+      runtime?.log?.(`═══════════════════════════════════════════════════════════`);
+      runtime?.log?.(`Tencent IM [${accountId}]: Webhook 服务启动成功`);
+      runtime?.log?.(`───────────────────────────────────────────────────────────`);
+      runtime?.log?.(`📡 绑定地址: 0.0.0.0:${port}`);
+      runtime?.log?.(`🔗 Webhook 路径: ${path}`);
+      runtime?.log?.(`🌐 本地访问地址: ${localUrl}`);
+      runtime?.log?.(`🌐 局域网访问地址: http://<本机IP>:${port}${path}`);
+      runtime?.log?.(`───────────────────────────────────────────────────────────`);
+      runtime?.log?.(`⚙️  配置信息:`);
+      runtime?.log?.(`   - SDKAppID: ${account.sdkAppId}`);
+      runtime?.log?.(`   - 管理员账号: ${account.adminUserId}`);
+      runtime?.log?.(`   - 发送者账号: ${account.userId}`);
+      runtime?.log?.(`   - 连接模式: ${account.connectionMode}`);
+      runtime?.log?.(`   - 单聊策略: ${account.dmPolicy}`);
+      runtime?.log?.(`   - 群聊策略: ${account.groupPolicy}`);
+      runtime?.log?.(`   - 需要@提及: ${account.requireMention}`);
+      runtime?.log?.(`───────────────────────────────────────────────────────────`);
+      runtime?.log?.(`📝 腾讯云 IM 回调配置指引:`);
+      runtime?.log?.(`   1. 登录: https://console.cloud.tencent.com/im/callback-setting`);
+      runtime?.log?.(`   2. 回调 URL: http://<你的花生壳域名>${path}`);
+      runtime?.log?.(`   3. 勾选: C2C.CallbackAfterSendMsg, Group.CallbackAfterSendMsg`);
+      runtime?.log?.(`═══════════════════════════════════════════════════════════`);
       resolve();
     });
     server.on("error", reject);
@@ -266,6 +309,17 @@ function handleWebhookEvent(opts: {
     ErrorInfo?: string;
   };
 
+  // ========== WEBHOOK EVENT DEBUG ==========
+  runtime?.log?.(
+    `\n${"=".repeat(60)}\n` +
+      `🔔 [WEBHOOK EVENT] Tencent IM [${accountId}]\n` +
+      `${"-".repeat(60)}\n` +
+      `📋 CallbackCommand: ${webhookEvent.CallbackCommand || "(未设置)"}\n` +
+      `📋 EventType: ${webhookEvent.EventType || "(未设置)"}\n` +
+      `${"-".repeat(60)}\n` +
+      `📦 完整 Webhook 事件数据:\n${JSON.stringify(webhookEvent, null, 2)}\n` +
+      `${"=".repeat(60)}\n`,
+  );
   // Handle C2C message callback (C2C.CallbackBeforeSendMsg)
   if (
     webhookEvent.CallbackCommand === "C2C.CallbackBeforeSendMsg" ||
