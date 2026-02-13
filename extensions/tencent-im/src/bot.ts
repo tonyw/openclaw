@@ -2,6 +2,7 @@ import type { ClawdbotConfig, RuntimeEnv, HistoryEntry } from "openclaw/plugin-s
 import type { ResolvedTencentAccount, TIMMessage } from "./types.js";
 import { resolveTencentAccount } from "./accounts.js";
 import { CONV_C2C, CONV_GROUP, MSG_TEXT, MSG_IMAGE, MSG_FILE, MSG_CUSTOM } from "./client.js";
+import { sendMessageTencentIM } from "./send-rest.js";
 import { normalizeTencentTarget, formatTencentTarget } from "./targets.js";
 
 export type TencentMessageEvent = {
@@ -21,17 +22,26 @@ export async function handleTencentMessage(opts: HandleMessageOpts): Promise<voi
   const { cfg, event, botUserId, runtime, chatHistories, accountId } = opts;
   const message = event.message;
 
+  runtime?.log?.(
+    `[DEBUG] handleTencentMessage: received message from=${message.from}, type=${message.type}, flow=${message.flow}`,
+  );
+
   // Skip messages sent by the bot itself
   if (message.from === botUserId) {
+    runtime?.log?.(`[DEBUG] handleTencentMessage: skipped - message from bot itself`);
     return;
   }
 
   // Skip outgoing messages
   if (message.flow === "out") {
+    runtime?.log?.(`[DEBUG] handleTencentMessage: skipped - outgoing message`);
     return;
   }
 
   const account = resolveTencentAccount({ cfg, accountId });
+  runtime?.log?.(
+    `[DEBUG] handleTencentMessage: account resolved, dmPolicy=${account.dmPolicy}, allowFrom=${JSON.stringify(account.allowFrom)}`,
+  );
 
   // Check DM policy for direct messages
   if (message.conversationType === CONV_C2C) {
@@ -41,6 +51,7 @@ export async function handleTencentMessage(opts: HandleMessageOpts): Promise<voi
       senderId: message.from,
       runtime,
     });
+    runtime?.log?.(`[DEBUG] handleTencentMessage: DM policy check result=${allowed}`);
     if (!allowed) {
       runtime?.log?.(`Tencent IM: Message from ${message.from} blocked by DM policy`);
       return;
@@ -63,11 +74,18 @@ export async function handleTencentMessage(opts: HandleMessageOpts): Promise<voi
   }
 
   // Extract message text
+  runtime?.log?.(
+    `[DEBUG] handleTencentMessage: message.type=${message.type}, payload=${JSON.stringify(message.payload)}`,
+  );
   const text = extractMessageText(message);
+  runtime?.log?.(`[DEBUG] handleTencentMessage: extracted text="${text?.substring(0, 50)}"`);
+
   if (!text || text.trim().length === 0) {
     // Skip non-text messages or empty messages
     if (message.type !== MSG_TEXT) {
       runtime?.log?.(`Tencent IM: Skipping non-text message type: ${message.type}`);
+    } else {
+      runtime?.log?.(`[DEBUG] handleTencentMessage: skipped - empty text`);
     }
     return;
   }
@@ -86,6 +104,10 @@ export async function handleTencentMessage(opts: HandleMessageOpts): Promise<voi
     conversationId: message.conversationID,
     raw: message,
   };
+
+  runtime?.log?.(
+    `[DEBUG] handleTencentMessage: dispatching message, channel=${normalizedMessage.channel}, sender=${normalizedMessage.senderId}`,
+  );
 
   // Get or create chat history
   const historyKey = `${accountId}:${message.conversationID}`;
@@ -108,7 +130,19 @@ export async function handleTencentMessage(opts: HandleMessageOpts): Promise<voi
   }
 
   // Dispatch to OpenClaw
-  runtime?.dispatchInboundMessage?.(normalizedMessage);
+  // Note: In Gateway mode, we need to send reply using outbound channel
+  // For now, log the message and TODO: implement proper reply dispatch
+  runtime?.log?.(`[DEBUG] handleTencentMessage: message ready for dispatch`);
+  runtime?.log?.(
+    `[Tencent IM] Received from ${normalizedMessage.senderId}: ${normalizedMessage.text}`,
+  );
+
+  // TODO: Implement reply dispatch using sendMessageTencentIM
+  // This requires integrating with the Gateway's reply dispatcher
+  // For now, just acknowledge receipt
+  runtime?.log?.(
+    `[Tencent IM] Message processed successfully (reply dispatch not yet implemented)`,
+  );
 }
 
 export type TencentBotAddedEvent = {
@@ -123,14 +157,26 @@ export type TencentBotRemovedEvent = {
 function extractMessageText(message: TIMMessage): string {
   switch (message.type) {
     case MSG_TEXT:
-      return message.payload.text || "";
+      // Webhook payload uses "Text" (capital T), TIM SDK uses "text" (lowercase)
+      return (message.payload.Text as string) || (message.payload.text as string) || "";
     case MSG_CUSTOM:
       // Custom messages may contain text in description or data
-      return message.payload.description || message.payload.data || "";
+      return (
+        (message.payload.Description as string) ||
+        (message.payload.description as string) ||
+        (message.payload.Data as string) ||
+        (message.payload.data as string) ||
+        ""
+      );
     case MSG_IMAGE:
       return "[图片]";
     case MSG_FILE:
-      return `[文件: ${message.payload.name || "unnamed"}]`;
+      const fileName =
+        (message.payload.FileName as string) ||
+        (message.payload.fileName as string) ||
+        (message.payload.name as string) ||
+        "unnamed";
+      return `[文件: ${fileName}]`;
     default:
       return "";
   }
