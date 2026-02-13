@@ -389,6 +389,20 @@ export {
   normalizeSignalMessagingTarget,
 } from "../channels/plugins/normalize/signal.js";
 
+// Channel: Tencent IM
+export {
+  listTencentIMAccountIds,
+  resolveDefaultTencentIMAccountId,
+  resolveTencentIMAccount,
+  type ResolvedTencentIMAccount,
+} from "../tencent-im/accounts.js";
+export { tencentIMOnboardingAdapter } from "../channels/plugins/onboarding/tencent-im.js";
+export {
+  looksLikeTencentIMTargetId,
+  normalizeTencentIMTarget,
+  formatTencentIMTarget,
+} from "../channels/plugins/normalize/tencent-im.js";
+
 // Channel: WhatsApp
 export {
   listWhatsAppAccountIds,

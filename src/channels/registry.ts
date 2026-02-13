@@ -13,6 +13,7 @@ export const CHAT_CHANNEL_ORDER = [
   "slack",
   "signal",
   "imessage",
+  "tencent-im",
 ] as const;
 
 export type ChatChannelId = (typeof CHAT_CHANNEL_ORDER)[number];
@@ -109,6 +110,16 @@ const CHAT_CHANNEL_META: Record<ChatChannelId, ChannelMeta> = {
     blurb: "this is still a work in progress.",
     systemImage: "message.fill",
   },
+  "tencent-im": {
+    id: "tencent-im",
+    label: "Tencent IM",
+    selectionLabel: "Tencent IM (腾讯云IM)",
+    detailLabel: "Tencent Cloud IM",
+    docsPath: "/channels/tencent-im",
+    docsLabel: "tencent-im",
+    blurb: "Tencent Cloud instant messaging via REST API.",
+    systemImage: "message",
+  },
 };
 
 export const CHAT_CHANNEL_ALIASES: Record<string, ChatChannelId> = {
@@ -116,6 +127,8 @@ export const CHAT_CHANNEL_ALIASES: Record<string, ChatChannelId> = {
   "internet-relay-chat": "irc",
   "google-chat": "googlechat",
   gchat: "googlechat",
+  tim: "tencent-im",
+  tencent: "tencent-im",
 };
 
 const normalizeChannelKey = (raw?: string | null): string | undefined => {

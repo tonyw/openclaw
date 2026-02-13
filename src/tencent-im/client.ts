@@ -1,7 +1,6 @@
 import type { ResolvedTencentAccount } from "./types.js";
 import { generateUserSig } from "./usersig.js";
 
-// Tencent IM REST API client
 const REST_API_BASE = "https://console.tim.qq.com/v4";
 
 export type TIMRestClient = {
@@ -16,13 +15,10 @@ export async function createTIMRestClient(
     return null;
   }
 
-  // Generate UserSig on-the-fly using secretKey
-  // If secretKey is provided, generate fresh UserSig
-  // Otherwise fall back to the provided userSig
+  // 使用 secretKey 动态生成 UserSig
   let userSig: string;
 
   if (account.secretKey) {
-    // Use adminUserId or userId as identifier to generate UserSig
     const identifier = account.adminUserId || account.userId;
     userSig = generateUserSig(identifier, account.sdkAppId, account.secretKey);
   } else {
@@ -32,7 +28,6 @@ export async function createTIMRestClient(
   return {
     account,
     makeRequest: async <T>(service: string, command: string, body: unknown): Promise<T> => {
-      // Use adminUserId (for admin API) or userId (for user API) as identifier
       const identifier = account.adminUserId || account.userId;
       const url = buildRequestUrl(account, service, command, identifier, userSig);
 
@@ -66,15 +61,15 @@ function buildRequestUrl(
   return `${REST_API_BASE}/${service}/${command}?sdkappid=${sdkAppId}&identifier=${encodeURIComponent(identifier)}&usersig=${encodeURIComponent(userSig)}&random=${random}&contenttype=json`;
 }
 
-// REST API types
+// REST API 类型
 export type SendMsgRequest = {
-  From_Account?: string; // The actual sender (can be any user)
+  From_Account?: string;
   To_Account?: string;
   GroupId?: string;
   MsgRandom: number;
   MsgBody: MsgBody[];
-  SyncOtherMachine?: number; // 1: sync to sender's other devices, 2: don't sync
-  MsgLifeTime?: number; // Message lifetime in seconds
+  SyncOtherMachine?: number;
+  MsgLifeTime?: number;
 };
 
 export type MsgBody = {
@@ -102,15 +97,4 @@ export type AccountCheckResponse = {
     UserID: string;
     AccountStatus: string;
   }[];
-};
-
-export type ImportUserRequest = {
-  Accounts: string[];
-};
-
-export type ImportUserResponse = {
-  ActionStatus: string;
-  ErrorInfo: string;
-  ErrorCode: number;
-  FailAccounts?: string[];
 };

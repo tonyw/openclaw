@@ -1,5 +1,5 @@
 import type { ResolvedTencentAccount } from "./types.js";
-import { createTIMRestClient, type AccountCheckResponse } from "./client-rest.js";
+import { createTIMRestClient, type AccountCheckResponse } from "./client.js";
 
 export type TencentProbeResult =
   | {
@@ -44,7 +44,7 @@ export async function probeTencent(account: ResolvedTencentAccount): Promise<Ten
   }
 
   try {
-    // Try to check admin account status as a health check
+    // 尝试检查管理员账号状态作为健康检查
     const response = await client.makeRequest<AccountCheckResponse>(
       "im_open_login_svc",
       "account_check",
@@ -53,8 +53,7 @@ export async function probeTencent(account: ResolvedTencentAccount): Promise<Ten
       },
     );
 
-    // Error 60010 means identifier is not admin - that's expected if using non-admin for API
-    // But we need admin for the identifier, so this is actually a config issue
+    // 错误 60010 表示 identifier 不是 admin - 这在使用非管理员账号进行 API 调用时预期会发生
     if (response.ErrorCode === 60010) {
       return {
         ok: false,
@@ -67,8 +66,8 @@ export async function probeTencent(account: ResolvedTencentAccount): Promise<Ten
       };
     }
 
+    // 70169 = 账号未找到，这对于新创建的账号可能是正常的
     if (response.ErrorCode !== 0 && response.ErrorCode !== 70169) {
-      // 70169 = account not found, which might be OK for newly created accounts
       return {
         ok: false,
         sdkAppId: account.sdkAppId,

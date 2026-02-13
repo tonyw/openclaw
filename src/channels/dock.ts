@@ -24,6 +24,7 @@ import { resolveSignalAccount } from "../signal/accounts.js";
 import { resolveSlackAccount, resolveSlackReplyToMode } from "../slack/accounts.js";
 import { buildSlackThreadingToolContext } from "../slack/threading-tool-context.js";
 import { resolveTelegramAccount } from "../telegram/accounts.js";
+import { resolveTencentIMAccount } from "../tencent-im/accounts.js";
 import { escapeRegExp, normalizeE164 } from "../utils.js";
 import { resolveWhatsAppAccount } from "../web/accounts.js";
 import { normalizeWhatsAppTarget } from "../whatsapp/normalize.js";
@@ -448,6 +449,37 @@ const DOCKS: Record<ChatChannelId, ChannelDock> = {
     threading: {
       buildToolContext: ({ context, hasRepliedRef }) =>
         buildDirectOrGroupThreadToolContext({ context, hasRepliedRef }),
+    },
+  },
+  "tencent-im": {
+    id: "tencent-im",
+    capabilities: {
+      chatTypes: ["direct", "group"],
+    },
+    outbound: { textChunkLimit: 4000 },
+    streaming: {
+      blockStreamingCoalesceDefaults: { minChars: 1500, idleMs: 1000 },
+    },
+    config: {
+      resolveAllowFrom: ({ cfg }) =>
+        (cfg.channels?.["tencent-im"]?.allowFrom ?? []).map((entry) => String(entry)),
+      formatAllowFrom: ({ allowFrom }) =>
+        allowFrom
+          .map((entry) => String(entry).trim())
+          .filter(Boolean)
+          .map((entry) => entry.replace(/^(tencent-im|tencent|tim):/i, "").toLowerCase()),
+    },
+    threading: {
+      buildToolContext: ({ context, hasRepliedRef }) => {
+        const isDirect = context.ChatType?.toLowerCase() === "direct";
+        const channelId =
+          (isDirect ? (context.From ?? context.To) : context.To)?.trim() || undefined;
+        return {
+          currentChannelId: channelId,
+          currentThreadTs: context.ReplyToId,
+          hasRepliedRef,
+        };
+      },
     },
   },
 };
