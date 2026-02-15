@@ -49,6 +49,18 @@ async function sendText(ctx: ChannelOutboundContext): Promise<OutboundDeliveryRe
   };
 }
 
+async function sendMedia(ctx: ChannelOutboundContext): Promise<OutboundDeliveryResult> {
+  // Tencent IM doesn't support media uploads yet, so we send the media URL as text
+  const { text, mediaUrl } = ctx;
+  const message = mediaUrl ? `${text || ""} ${mediaUrl}`.trim() : text || "";
+
+  if (!message) {
+    throw new Error("Missing text or mediaUrl");
+  }
+
+  return sendText({ ...ctx, text: message });
+}
+
 async function startGateway(ctx: ChannelGatewayContext): Promise<() => Promise<void>> {
   return startTencentIMMonitor(ctx);
 }
@@ -103,6 +115,7 @@ export const tencentIMPlugin: ChannelPlugin = {
     deliveryMode: "direct",
     textChunkLimit: 4000,
     sendText,
+    sendMedia,
   },
   // Gateway adapter for webhook handling
   gateway: {
