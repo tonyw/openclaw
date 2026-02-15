@@ -1,6 +1,10 @@
 import type { OpenClawConfig } from "../../config/config.js";
 import type { PollInput } from "../../polls.js";
-import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
+import {
+  getChannelPlugin,
+  listChannelPlugins,
+  normalizeChannelId,
+} from "../../channels/plugins/index.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway, randomIdempotencyKey } from "../../gateway/call.js";
 import { normalizePollInput } from "../../polls.js";
@@ -152,6 +156,13 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
   }
   const plugin = getChannelPlugin(channel);
   if (!plugin) {
+    // Debug: log available plugins when channel plugin not found
+    if (channel === "tencent-im") {
+      const allPlugins = listChannelPlugins();
+      console.error(
+        `[message] tencent-im plugin not found. Available plugins: ${allPlugins.map((p) => p.id).join(", ")}`,
+      );
+    }
     throw new Error(`Unknown channel: ${channel}`);
   }
   const deliveryMode = plugin.outbound?.deliveryMode ?? "direct";

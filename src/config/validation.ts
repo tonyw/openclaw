@@ -323,12 +323,22 @@ function validateConfigObjectWithPluginsBase(
 
   const entries = pluginsConfig?.entries;
   if (entries && isRecord(entries)) {
+    // Built-in channels don't need plugin entries, but we allow them for backward compatibility
+    const builtInChannelIds = new Set(CHANNEL_IDS as readonly string[]);
     for (const pluginId of Object.keys(entries)) {
       if (!knownIds.has(pluginId)) {
-        issues.push({
-          path: `plugins.entries.${pluginId}`,
-          message: `plugin not found: ${pluginId}`,
-        });
+        // If it's a built-in channel, warn instead of error (backward compatibility)
+        if (builtInChannelIds.has(pluginId)) {
+          warnings.push({
+            path: `plugins.entries.${pluginId}`,
+            message: `plugin entry for built-in channel "${pluginId}" is not needed (channel is always available)`,
+          });
+        } else {
+          issues.push({
+            path: `plugins.entries.${pluginId}`,
+            message: `plugin not found: ${pluginId}`,
+          });
+        }
       }
     }
   }

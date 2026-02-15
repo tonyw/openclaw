@@ -173,6 +173,13 @@ export function normalizeAnyChannelId(raw?: string | null): ChannelId | null {
     return null;
   }
 
+  // First check built-in channels
+  const builtIn = normalizeChatChannelId(raw);
+  if (builtIn) {
+    return builtIn;
+  }
+
+  // Then check plugin registry
   const registry = requireActivePluginRegistry();
   const hit = registry.channels.find((entry) => {
     const id = String(entry.plugin.id ?? "")

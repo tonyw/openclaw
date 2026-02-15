@@ -1,6 +1,7 @@
 import type { PluginRegistry } from "../../../plugins/registry.js";
 import type { ChannelId, ChannelOutboundAdapter } from "../types.js";
 import { getActivePluginRegistry } from "../../../plugins/runtime.js";
+import { getChannelPlugin } from "../index.js";
 
 // Channel docking: outbound sends should stay cheap to import.
 //
@@ -27,8 +28,10 @@ export async function loadChannelOutboundAdapter(
   if (cached) {
     return cached;
   }
-  const pluginEntry = registry?.channels.find((entry) => entry.plugin.id === id);
-  const outbound = pluginEntry?.plugin.outbound;
+
+  // Use getChannelPlugin to get both built-in and plugin channels
+  const plugin = getChannelPlugin(id);
+  const outbound = plugin?.outbound;
   if (outbound) {
     cache.set(id, outbound);
     return outbound;

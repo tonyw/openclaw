@@ -12,7 +12,19 @@ export type MessageChannelId = DeliverableMessageChannel;
 const getMessageChannels = () => listDeliverableMessageChannels();
 
 function isKnownChannel(value: string): boolean {
-  return getMessageChannels().includes(value as MessageChannelId);
+  const channels = getMessageChannels();
+  // Use string comparison instead of type casting for includes check
+  const isKnown = channels.some((ch) => String(ch) === String(value));
+  if (!isKnown && value === "tencent-im") {
+    // Debug: log available channels when tencent-im is not found
+    console.error(
+      `[channel-selection] tencent-im not found in channels. Available: ${channels.join(", ")}`,
+    );
+    console.error(
+      `[channel-selection] CHANNEL_IDS check: ${channels.includes("tencent-im" as MessageChannelId)}`,
+    );
+  }
+  return isKnown;
 }
 
 function isAccountEnabled(account: unknown): boolean {

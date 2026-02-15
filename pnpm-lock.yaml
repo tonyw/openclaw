@@ -487,19 +487,6 @@ importers:
         specifier: workspace:*
         version: link:../..
 
-  extensions/tencent-im:
-    dependencies:
-      tim-js-sdk:
-        specifier: ^2.27.6
-        version: 2.27.6
-      tim-upload-plugin:
-        specifier: ^1.0.4
-        version: 1.4.3
-    devDependencies:
-      openclaw:
-        specifier: workspace:*
-        version: link:../..
-
   extensions/tlon:
     dependencies:
       '@urbit/aura':
@@ -5391,12 +5378,6 @@ packages:
 
   thread-stream@3.1.0:
     resolution: {integrity: sha512-OqyPZ9u96VohAyMfJykzmivOrY2wfMSf3C5TtFJVgN+Hm6aj+voFhlK+kZEIv2FBh1X6Xp3DlnCOfEQ3B2J86A==}
-
-  tim-js-sdk@2.27.6:
-    resolution: {integrity: sha512-UdeYxn9i4ksCrmcrCwesckvBu/EQA3rUMrIJU13H9Qvz7sY4aojZkwhZpsctAvmV1FxgfT593WNK/7y156EMLQ==}
-
-  tim-upload-plugin@1.4.3:
-    resolution: {integrity: sha512-3ZmbA36dr3eG9YGDon9MLBUtbNawYWkL+TBa+VS0Uviguc7PlVSOIVRG2C4irXX16slDT2Kj+HAZapp+Xqp2xg==}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -11250,10 +11231,6 @@ snapshots:
   thread-stream@3.1.0:
     dependencies:
       real-require: 0.2.0
-
-  tim-js-sdk@2.27.6: {}
-
-  tim-upload-plugin@1.4.3: {}
 
   tinybench@2.9.0: {}
 
