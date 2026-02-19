@@ -6,7 +6,7 @@
 
 1. **Pipeline 选股漏斗**：基于具体某个交易日所有A股所有主板股票收盘价，多阶段量化选股入池。
 2. **AI 预测评分**：基于具体某个交易日Pipeline 选股漏斗的最终结果，给出次日选股建议。
-3. **A股主板股票信息**：股票信息，技术指标，开盘啦主题信息。
+3. **A股主板股票信息**：股票信息，技术指标，开盘啦题材，东财行业与题材（概念/行业/地域板块及成分）。
 
 ---
 
@@ -151,7 +151,7 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 
 ---
 
-## 二、AI 预测评分工具 (`get_ai_predict`)
+## 二、AI 预测评分工具 (`get_ai_predict` 与 `get_ai_predict_by_date`)
 
 ### 2.1 工具说明
 
@@ -258,6 +258,70 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 - `pipeline_version`: Pipeline 版本
 - `stage_version`: 阶段版本
 
+### 2.7 按日期获取全天 AI 预测 (`get_ai_predict_by_date`)
+
+#### 工具说明
+
+`get_ai_predict_by_date` 用于获取**某一天的全部 AI 预测结果**，无需指定股票代码。返回该日所有参与评分的股票列表，按排名升序排列，便于分析当日整体选股情况（如高分股票数量、分数分布等）。
+
+与 `get_ai_predict` 的区别：
+
+- `get_ai_predict`：单只股票、需传 `code`，用于查看某只股票的评分。
+- `get_ai_predict_by_date`：按日期查全天结果、不需 `code`，用于分析某一天的整体选股情况。
+
+#### 何时调用 `get_ai_predict_by_date`
+
+##### ✅ 应该调用的场景：
+
+1. **用户询问某一天的整体选股/评分情况**
+   - 例如："2026-01-30 那天有哪些股票被 AI 推荐？"
+   - 例如："看一下上周五的选股排名"
+   - 例如："某天有多少只股票评分在 85 分以上？"
+
+2. **用户需要按日期对比或复盘**
+   - 例如："对比一下这三天的高分股有什么变化"
+   - 例如："某天的选股名单导出来看看"
+
+3. **用户不关心单只股票，只关心当日全貌**
+   - 例如："那天整体选股情况怎么样？"
+
+##### ❌ 不应该调用的场景：
+
+1. **用户只问单只股票的评分**
+   - 应使用 `get_ai_predict(code="xxx")`，更直接
+
+2. **用户问的是 Pipeline 某阶段的股票列表（未做 AI 评分前的入池名单）**
+   - 应使用 `get_pipeline_results`
+
+#### 调用示例
+
+```json
+{
+  "name": "get_ai_predict_by_date",
+  "parameters": {
+    "trade_date": "2026-01-30",
+    "pipeline_version": "v1.0",
+    "limit": 200
+  }
+}
+```
+
+- `trade_date`：必填，交易日期，格式 `YYYY-MM-DD`。
+- `pipeline_version`：可选，默认 `v1.0`。
+- `limit`：可选，返回条数（按排名取前 N 条），默认 200。
+
+#### 返回说明
+
+返回**列表**，每条与 `get_ai_predict` 单条结构一致，按 `rank` 升序：
+
+- `ts_code`: 股票代码
+- `stock_name`: 股票名称
+- `trade_date`: 预测日期
+- `score`: AI 评分（0-100）
+- `rank`: 当天排名（1 为最高分）
+- `pipeline_version`: Pipeline 版本
+- `stage_version`: 阶段版本
+
 ---
 
 ## 三、Pipeline 选股与 AI 预测的关系
@@ -302,6 +366,14 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 4. 如需更多技术细节，可调用 get_stock_technical、get_stock_kline 等
 ```
 
+#### 场景 4：分析某一天的整体选股情况
+
+```
+1. 用户询问："2026-01-30 那天整体选股情况怎么样？" 或 "那天有多少只高分股？"
+2. 调用 get_ai_predict_by_date(trade_date="2026-01-30") 获取该日全部 AI 预测结果（按排名排序）
+3. 可统计 S≥85 的数量、列出前 N 名、或做分数分布分析
+```
+
 ### 3.3 数据一致性
 
 - Pipeline 选股结果和 AI 预测结果都基于**相同的交易日期**
@@ -330,8 +402,15 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 
 ### 4.4 题材概念工具
 
-- **`get_kpl_concepts`**：获取股票所属的 KPL（开盘啦软件） 概念/题材，开盘啦题材是与交易日强相关的信息，数据库中记录了每天关注度最强的三个概念/题材
-- **`get_concept_stocks`**：获取某个 KPL 概念下的所有股票（当日）
+- **`get_kpl_concepts`**：获取股票所属的 KPL（开盘啦）概念/题材，数据来自本地 `kpl_concept_cons` 表，与交易日强相关，通常返回该股当日关联的若干题材（如关注度最高的前几条）。
+- **`get_concept_stocks`**：获取某个 KPL 概念（题材）下的所有成分股，按日期查询，数据来自 `kpl_concept_cons` 表。
+
+详见 [五、开盘啦（KPL）数据说明](#五开盘啦kpl数据说明)。
+
+- **`get_dc_indices`**：获取东财（东方财富）概念/行业/地域板块列表（dc_index / dc_daily），支持按日期、板块类型、关键词筛选。
+- **`get_dc_members`**：获取指定东财板块（ts_code 如 BK1184.DC）的成分股列表（dc_member）。
+
+详见 [六、东财（DC）行业与题材数据说明](#六东财dc行业与题材数据说明)。
 
 ### 4.5 市场指数工具
 
@@ -339,15 +418,131 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 
 ---
 
-## 五、最佳实践建议
+## 五、开盘啦（KPL）数据说明
 
-### 5.1 工具选择决策树
+开盘啦（KPL）是专业打板 app，本服务使用的题材数据来自 Tushare，仅用于量化研究与选股辅助分析。
+
+### 5.1 数据来源
+
+| 用途       | Tushare 接口       | 说明                                                                                                                                                       |
+| ---------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 题材库     | `kpl_concept`      | 每日盘后更新，单次最大 5000 条，可按日期循环获取。                                                                                                         |
+| 题材成分股 | `kpl_concept_cons` | 获取某题材下的成分股，单次最大 3000 条。参考 [Tushare 开盘啦题材成分](https://tushare.pro/document/2?doc_id=351)。**注意**：该接口因源站改版暂无新增数据。 |
+| 榜单       | `kpl_list`         | 涨停/炸板/跌停等榜单。参考 [Tushare 开盘啦榜单数据](https://tushare.pro/document/2?doc_id=347)。本服务当前未接入。                                         |
+
+本地仅使用题材库（`kpl_concept`）与题材成分（`kpl_concept_cons`）两张表。
+
+### 5.2 本地表结构与字段
+
+- **题材库表 `kpl_concept`**（对应 Tushare `kpl_concept` 返回）
+
+  | 字段       | 类型    | 说明                  |
+  | ---------- | ------- | --------------------- |
+  | trade_date | String  | 交易日期 YYYYMMDD     |
+  | ts_code    | String  | 题材代码（xxxxxx.KP） |
+  | name       | String  | 题材名称              |
+  | z_t_num    | Integer | 涨停数量              |
+  | up_num     | Integer | 排名上升位数          |
+
+- **题材成分表 `kpl_concept_cons`**（对应 Tushare `kpl_concept_cons` 返回）
+
+  | 字段       | 类型    | 说明                                 |
+  | ---------- | ------- | ------------------------------------ |
+  | ts_code    | String  | 题材 ID（xxxxxx.KP）                 |
+  | name       | String  | 题材名称                             |
+  | con_name   | String  | 股票名称                             |
+  | con_code   | String  | 股票代码（如 xxxxxx.SH / xxxxxx.SZ） |
+  | trade_date | String  | 交易日期                             |
+  | desc       | Text    | 描述                                 |
+  | hot_num    | Integer | 人气值                               |
+
+工具 `get_kpl_concepts`、`get_concept_stocks` 的查询均基于上述 `kpl_concept_cons`（及题材名称等）实现。
+
+### 5.3 注意事项
+
+1. **题材成分接口**：Tushare 的 `kpl_concept_cons` 因源站改版暂无新增数据，历史数据仍可用，新日期可能无更新。
+2. **与交易日强相关**：题材、成分均按日维护，使用工具时须指定或约定 `trade_date`。
+3. **仅作辅助**：题材信息不参与 Pipeline 筛选，只作为 AI 分析时的参考；无法保证股票与题材的相关度，新型题材或消息杂乱时需谨慎。
+
+---
+
+## 六、东财（DC）行业与题材数据说明
+
+东财（东方财富）概念/行业/地域板块数据来自 Tushare，用于行业与题材分析、板块成分与行情查询。
+
+### 6.1 数据来源
+
+| 用途         | Tushare 接口 | 说明                                                                                                                                                                         |
+| ------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 概念板块列表 | `dc_index`   | 每个交易日的概念板块（名称、领涨股、涨跌幅、上涨家数等）。参考 [Tushare 东方财富概念板块](https://tushare.pro/document/2?doc_id=362)。单次最大 5000 条。                     |
+| 板块成分股   | `dc_member`  | 按板块代码与交易日期获取成分股。参考 [Tushare 东方财富板块成分](https://tushare.pro/document/2?doc_id=363)。单次最大 5000 条。                                               |
+| 板块行情     | `dc_daily`   | 东财概念/行业/地域板块日行情（开高低收、涨跌幅、换手率等）。参考 [Tushare 东财概念板块行情](https://tushare.pro/document/2?doc_id=382)。历史自 2020 年起，单次最大 2000 条。 |
+
+本地表：`dc_index`（概念板块）、`dc_member`（板块成分）、`dc_daily`（板块日行情）。
+
+### 6.2 本地表结构与字段
+
+- **概念板块表 `dc_index`**（对应 Tushare `dc_index`）
+
+  | 字段          | 类型    | 说明                     |
+  | ------------- | ------- | ------------------------ |
+  | ts_code       | String  | 概念代码（如 BK1184.DC） |
+  | trade_date    | String  | 交易日期 YYYYMMDD        |
+  | name          | String  | 概念名称                 |
+  | leading       | String  | 领涨股票名称             |
+  | leading_code  | String  | 领涨股票代码             |
+  | pct_change    | Float   | 涨跌幅                   |
+  | leading_pct   | Float   | 领涨股票涨跌幅           |
+  | total_mv      | Float   | 总市值（万元）           |
+  | turnover_rate | Float   | 换手率                   |
+  | up_num        | Integer | 上涨家数                 |
+  | down_num      | Integer | 下降家数                 |
+
+- **板块成分表 `dc_member`**（对应 Tushare `dc_member`）
+
+  | 字段       | 类型   | 说明                     |
+  | ---------- | ------ | ------------------------ |
+  | trade_date | String | 交易日期 YYYYMMDD        |
+  | ts_code    | String | 板块代码（如 BK1184.DC） |
+  | con_code   | String | 成分股票代码             |
+  | name       | String | 成分股名称               |
+
+- **板块行情表 `dc_daily`**（对应 Tushare `dc_daily`）
+
+  | 字段                      | 类型   | 说明                    |
+  | ------------------------- | ------ | ----------------------- |
+  | ts_code                   | String | 板块代码（xxxxx.DC）    |
+  | trade_date                | String | 交易日期 YYYYMMDD       |
+  | close / open / high / low | Float  | 收盘/开盘/最高/最低点位 |
+  | pct_change                | Float  | 涨跌幅                  |
+  | turnover_rate             | Float  | 换手率                  |
+  | vol / amount              | Float  | 成交量(股)/成交额(元)   |
+
+### 6.3 相关 MCP 工具
+
+- **`get_dc_indices`**：获取东财概念/行业/地域板块列表。概念板块来自 `dc_index`（含名称、领涨股、涨跌幅）；行业/地域来自 `dc_daily`（当前仅行情，名称显示为代码）。支持按日期、类型、关键词筛选。
+- **`get_dc_members`**：获取指定东财板块（ts_code，如 BK1184.DC）的成分股列表，可按交易日期查询。
+
+### 6.4 注意事项
+
+1. **与交易日强相关**：板块列表与成分均按日维护，查询时需指定或使用最新 `trade_date`。
+2. **概念 vs 行业/地域**：概念板块有完整名称与领涨股（dc_index）；行业/地域板块当前仅从 dc_daily 取行情，名称以代码展示。
+3. **仅限学习研究**：Tushare 注明本接口只限个人学习研究使用，商业用途需联系东方财富。
+
+---
+
+## 七、最佳实践建议
+
+### 7.1 工具选择决策树
 
 ```
 用户询问股票相关问题
 │
 ├─ 询问单只股票的评分/分析？
 │  └─ 使用 get_ai_predict
+│
+├─ 询问某一天的全部选股/评分情况？
+│  └─ 使用 get_ai_predict_by_date
 │
 ├─ 询问股票列表/选股结果？
 │  └─ 使用 get_pipeline_results
@@ -358,11 +553,17 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 ├─ 询问技术指标/K线数据？
 │  └─ 使用 get_stock_technical 或 get_stock_kline
 │
+├─ 询问东财概念/行业/地域板块列表？
+│  └─ 使用 get_dc_indices
+│
+├─ 询问某东财板块的成分股？
+│  └─ 使用 get_dc_members
+│
 └─ 询问资金流向/大单数据？
    └─ 使用 get_ddx_ddy 或 get_stock_money_flow
 ```
 
-### 5.2 组合使用建议
+### 7.2 组合使用建议
 
 1. **全面分析单只股票**：
    - `get_stock_basic` → 基础信息
@@ -376,11 +577,19 @@ Pipeline 选股是一个**漏斗式筛选**过程：
    - 对感兴趣的股票调用 `get_ai_predict` → 获取详细评分
    - 按评分排序，关注 S≥85 的股票
 
-3. **分析市场整体情况**：
+3. **分析某一天的整体选股情况**：
+   - `get_ai_predict_by_date(trade_date="YYYY-MM-DD")` → 该日全部 AI 预测结果（按排名）
+   - 可统计高分股数量、分数分布或导出当日名单
+
+4. **分析市场整体情况**：
    - `get_index_daily` → 大盘指数走势
    - `get_pipeline_results` → 各阶段选股数量（判断市场热度）
 
-### 5.3 注意事项
+5. **行业/题材分析**：
+   - `get_dc_indices` → 东财概念/行业/地域板块列表（涨跌幅、领涨股等）
+   - `get_dc_members` → 某板块成分股
+
+### 7.3 注意事项
 
 1. **使用顺序**：**先调用 Pipeline 选股，再调用 AI 预测评分**。Pipeline 选股提供候选股票池，AI 预测评分提供买入决策依据
 2. **日期一致性**：确保使用相同的 `trade_date` 参数，避免数据不一致
@@ -390,7 +599,7 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 
 ---
 
-## 六、常见问题
+## 八、常见问题
 
 ### Q1: AI 预测评分和 Pipeline 选股结果有什么区别？
 
@@ -435,12 +644,14 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 
 ---
 
-## 七、总结
+## 九、总结
 
 本 MCP 服务提供了完整的A股主板股票技术分析和选股能力：
 
 - **`get_pipeline_results`**：基于具体某个交易日所有A股主板股票收盘价，多阶段量化选股入池，提供候选股票池
-- **`get_ai_predict`**：基于 Pipeline 选股漏斗的最终结果，给出次日选股建议，适用于单只股票的详细分析和买入决策
+- **`get_ai_predict`**：基于 Pipeline 选股漏斗的最终结果，给出单只股票的次日选股建议与详细分析
+- **`get_ai_predict_by_date`**：获取某一天的全部 AI 预测结果（无需指定股票代码），便于分析当日整体选股情况
+- **`get_dc_indices`** / **`get_dc_members`**：东财（东方财富）概念/行业/地域板块列表及板块成分股，数据来自 Tushare dc_index、dc_daily、dc_member
 
 **推荐使用流程**：
 
