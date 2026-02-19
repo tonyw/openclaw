@@ -87,7 +87,10 @@ export function isContextOverflowError(errorMessage?: string): boolean {
     errorMessage.includes("上下文超出") ||
     errorMessage.includes("上下文长度超") ||
     errorMessage.includes("超出最大上下文") ||
-    errorMessage.includes("请压缩上下文")
+    errorMessage.includes("请压缩上下文") ||
+    // Minimax and similar providers: per-message token limit exceeded
+    lower.includes("exceed max message tokens") ||
+    lower.includes("total tokens of image and text exceed")
   );
 }
 
