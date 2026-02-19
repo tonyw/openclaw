@@ -46,7 +46,10 @@ export function isContextOverflowError(errorMessage?: string): boolean {
     lower.includes("exceeds model context window") ||
     (hasRequestSizeExceeds && hasContextWindow) ||
     lower.includes("context overflow:") ||
-    (lower.includes("413") && lower.includes("too large"))
+    (lower.includes("413") && lower.includes("too large")) ||
+    // Minimax and similar providers: per-message token limit exceeded
+    lower.includes("exceed max message tokens") ||
+    lower.includes("total tokens of image and text exceed")
   );
 }
 
