@@ -4,49 +4,45 @@ function isOpenAiCompletionsModel(model: Model<Api>): model is Model<"openai-com
   return model.api === "openai-completions";
 }
 
-function isDashScopeCompatibleEndpoint(baseUrl: string): boolean {
+/**
+ * Returns true when the provider/URL is a third-party OpenAI-compatible endpoint
+ * that does NOT support the `developer` role (only `system`/`user`/`assistant`/`tool`).
+ * The pi-ai SDK auto-detects `supportsDeveloperRole: true` for any URL not in its
+ * built-in non-standard list, so we patch it here for known incompatible hosts.
+ */
+function isNoDeveloperRoleProvider(baseUrl: string, provider: string): boolean {
+  const url = baseUrl.toLowerCase();
+  const prov = provider.toLowerCase();
   return (
-    baseUrl.includes("dashscope.aliyuncs.com") ||
-    baseUrl.includes("dashscope-intl.aliyuncs.com") ||
-    baseUrl.includes("dashscope-us.aliyuncs.com")
+    prov === "zai" ||
+    url.includes("api.z.ai") ||
+    // Volcengine / Doubao (ByteDance)
+    url.includes("volces.com") ||
+    // Alibaba Cloud DashScope
+    url.includes("dashscope.aliyuncs.com") ||
+    // SiliconFlow
+    url.includes("siliconflow.cn") ||
+    // MoonShot / Kimi
+    url.includes("moonshot.cn") ||
+    url.includes("api.moonshot") ||
+    // Baidu Qianfan
+    url.includes("qianfan.baidubce.com") ||
+    // Zhipu AI
+    url.includes("bigmodel.cn") ||
+    url.includes("zhipuai.cn") ||
+    // Tencent Hunyuan
+    url.includes("hunyuan.tencentcloudapi.com") ||
+    // DeepSeek
+    url.includes("deepseek.com") ||
+    // Minimax
+    url.includes("minimaxi.com") ||
+    url.includes("minimax.io")
   );
 }
 
-function isAnthropicMessagesModel(model: Model<Api>): model is Model<"anthropic-messages"> {
-  return model.api === "anthropic-messages";
-}
-
-/**
- * pi-ai constructs the Anthropic API endpoint as `${baseUrl}/v1/messages`.
- * If a user configures `baseUrl` with a trailing `/v1` (e.g. the previously
- * recommended format "https://api.anthropic.com/v1"), the resulting URL
- * becomes "…/v1/v1/messages" which the Anthropic API rejects with a 404.
- *
- * Strip a single trailing `/v1` (with optional trailing slash) from the
- * baseUrl for anthropic-messages models so users with either format work.
- */
-function normalizeAnthropicBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/v1\/?$/, "");
-}
 export function normalizeModelCompat(model: Model<Api>): Model<Api> {
   const baseUrl = model.baseUrl ?? "";
-
-  // Normalise anthropic-messages baseUrl: strip trailing /v1 that users may
-  // have included in their config. pi-ai appends /v1/messages itself.
-  if (isAnthropicMessagesModel(model) && baseUrl) {
-    const normalised = normalizeAnthropicBaseUrl(baseUrl);
-    if (normalised !== baseUrl) {
-      return { ...model, baseUrl: normalised } as Model<"anthropic-messages">;
-    }
-  }
-
-  const isZai = model.provider === "zai" || baseUrl.includes("api.z.ai");
-  const isMoonshot =
-    model.provider === "moonshot" ||
-    baseUrl.includes("moonshot.ai") ||
-    baseUrl.includes("moonshot.cn");
-  const isDashScope = model.provider === "dashscope" || isDashScopeCompatibleEndpoint(baseUrl);
-  if ((!isZai && !isMoonshot && !isDashScope) || !isOpenAiCompletionsModel(model)) {
+  if (!isNoDeveloperRoleProvider(baseUrl, model.provider) || !isOpenAiCompletionsModel(model)) {
     return model;
   }
 
