@@ -215,6 +215,8 @@ export async function handleTencentIMWebhook(
     envelope: envelopeOptions,
   });
 
+  // Message already passed policy check (step 3); set CommandAuthorized so /status etc.
+  // are honored. Downstream resolveCommandAuthorization still uses allowFrom/commands.allowFrom.
   const ctxPayload = finalizeInboundContext({
     Body: body,
     BodyForAgent: text,
@@ -234,6 +236,7 @@ export async function handleTencentIMWebhook(
     OriginatingTo: message.isGroup ? `group:${message.to}` : message.to,
     Timestamp: message.timestamp,
     MessageSid: `${message.timestamp}-${message.from}`,
+    CommandAuthorized: true,
   });
 
   runtime?.log?.(`[tencent-im] Context built, sessionKey=${route.sessionKey}`);
