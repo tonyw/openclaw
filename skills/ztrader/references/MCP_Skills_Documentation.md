@@ -151,7 +151,81 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 
 ---
 
-## 二、AI 预测评分工具 (`get_ai_predict` 与 `get_ai_predict_by_date`)
+## 一（补充）、单针下 30 选股工具 (`get_needle_below30_stocks`)
+
+### 1.8 工具说明
+
+`get_needle_below30_stocks` 专门查询**每天基于「单针下 30」指标选出的股票**，数据来自 `stage_needle_below_30` 表（对应 `db_models.StageNeedleBelow30`）。在 MCP 中既可以继续用 `get_pipeline_results(stage="needle_below30", ...)`，也可以直接使用本工具查「单针下 30」每日选股列表，**语义更清晰、调用更简单**。当用户问「单针下 30」的选股/指标时，应**优先用本 MCP 工具查询**。
+
+### 1.9 单针下 30 选股逻辑简述
+
+- **含义**：长期 > 80 且短期 < 30 的形态。
+- **指标公式（通达信）**：
+  - 短期 = 100\*(C-LLV(L,N1))/(HHV(C,N1)-LLV(L,N1))
+  - 长期 = 100\*(C-LLV(L,N2))/(HHV(C,N2)-LLV(L,N2))
+- **选股条件**：当长期在 80 以上、短期在 30 以下时入选；且 KDJ 的 J 值 ≤ max_kdj_j（默认 55）；且前一天股价下跌；且当天成交量小于最近一次股价上涨日的成交量。
+- **默认参数**：N1=3，N2=21。排除 ST、非主板；可选流通市值过滤。
+- **更新频率**：每天出一个指标（按交易日）。
+
+### 1.10 参数说明
+
+| 参数               | 类型    | 必填 | 说明                                                                  |
+| ------------------ | ------- | ---- | --------------------------------------------------------------------- |
+| `trade_date`       | string  | 否   | 交易日期（如 `YYYY-MM-DD` 或 `YYYYMMDD`），不传则返回最新交易日的结果 |
+| `pipeline_version` | string  | 否   | Pipeline 版本，默认 `v1.0`                                            |
+| `limit`            | integer | 否   | 返回条数，默认 50                                                     |
+
+### 1.11 返回字段
+
+- `ts_code`: 股票代码
+- `stock_name`: 股票名称
+- `trade_date`: 交易日期
+
+### 1.12 何时调用 `get_needle_below30_stocks`
+
+#### ✅ 应该调用的场景
+
+1. **用户询问单针下 30 的选股结果**
+   - 例如：「单针下 30 今天/本周有哪些股票？」
+   - 例如：「查一下单针下 30 的指标」「单针下 30 选股列表」
+   - **优先使用本工具**，无需再传 `stage="needle_below30"`。
+
+2. **用户询问某日单针下 30 名单**
+   - 例如：「2026-01-30 单针下 30 有哪些？」
+   - 传 `trade_date` 即可。
+
+#### 与 `get_pipeline_results` 的关系
+
+- 查单针下 30 可用：`get_pipeline_results(stage="needle_below30", trade_date?, pipeline_version?, limit?)` 或 **`get_needle_below30_stocks(trade_date?, pipeline_version?, limit?)`**。
+- 后者专用于「单针下 30」语义，调用更简单，推荐在用户明确问单针下 30 时使用。
+
+### 1.13 调用示例
+
+```json
+{
+  "name": "get_needle_below30_stocks",
+  "parameters": {
+    "trade_date": "2026-01-30",
+    "pipeline_version": "v1.0",
+    "limit": 50
+  }
+}
+```
+
+不指定 `trade_date` 时返回最新交易日的单针下 30 选股结果。
+由于每天单针下30的股票比较少，默认不用设置pipeline_version和limit。
+单针下30选股的通达信指标是：
+单针下30选股：长期>80 且 短期<30
+
+指标公式（通达信）：
+短期 = 100*(C-LLV(L,N1))/(HHV(C,N1)-LLV(L,N1))
+长期 = 100*(C-LLV(L,N2))/(HHV(C,N2)-LLV(L,N2))
+选股条件：当长期在 80 以上、短期在 30 以下时选中；且 KDJ 的 J 值 ≤ max_kdj_j（默认 55）；
+且前一天股价下跌；且当天成交量小于最近一次股价上涨日的成交量。
+
+默认 N1=3, N2=21。排除 ST、非主板；可选流通市值过滤。
+
+--- (`get_ai_predict` 与 `get_ai_predict_by_date`)
 
 ### 2.1 工具说明
 
@@ -545,7 +619,8 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 │  └─ 使用 get_ai_predict_by_date
 │
 ├─ 询问股票列表/选股结果？
-│  └─ 使用 get_pipeline_results
+│  ├─ 若明确为「单针下 30」选股 → 优先使用 get_needle_below30_stocks
+│  └─ 其他阶段或通用 → 使用 get_pipeline_results
 │
 ├─ 询问股票基础信息？
 │  └─ 使用 get_stock_basic 或 search_stocks
@@ -648,6 +723,7 @@ Pipeline 选股是一个**漏斗式筛选**过程：
 
 本 MCP 服务提供了完整的A股主板股票技术分析和选股能力：
 
+- **`get_needle_below30_stocks`**：专门查询每天基于「单针下 30」指标选出的股票（数据来自 `stage_needle_below_30` 表）。参数：`trade_date`（可选）、`pipeline_version`（可选，默认 v1.0）、`limit`（可选，默认 50）。返回：`ts_code`、`stock_name`、`trade_date`。用户问单针下 30 的选股/指标时，**优先用本工具**；也可继续使用 `get_pipeline_results(stage="needle_below30", ...)`。
 - **`get_pipeline_results`**：基于具体某个交易日所有A股主板股票收盘价，多阶段量化选股入池，提供候选股票池
 - **`get_ai_predict`**：基于 Pipeline 选股漏斗的最终结果，给出单只股票的次日选股建议与详细分析
 - **`get_ai_predict_by_date`**：获取某一天的全部 AI 预测结果（无需指定股票代码），便于分析当日整体选股情况
