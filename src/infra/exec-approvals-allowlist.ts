@@ -1,6 +1,6 @@
 import path from "node:path";
+import { getSafeBinProfiles, type SafeBinProfile } from "../constants/safe-bin-profiles.js";
 import {
-  DEFAULT_SAFE_BINS,
   analyzeShellCommand,
   isWindowsPlatform,
   matchAllowlist,
@@ -12,11 +12,7 @@ import {
   type ExecCommandSegment,
 } from "./exec-approvals-analysis.js";
 import type { ExecAllowlistEntry } from "./exec-approvals.js";
-import {
-  SAFE_BIN_PROFILES,
-  type SafeBinProfile,
-  validateSafeBinArgv,
-} from "./exec-safe-bin-policy.js";
+import { validateSafeBinArgv } from "./exec-safe-bin-policy-validator.js";
 import { isTrustedSafeBinPath } from "./exec-safe-bin-trust.js";
 import {
   extractShellWrapperInlineCommand,
@@ -25,6 +21,8 @@ import {
   unwrapKnownShellMultiplexerInvocation,
   unwrapKnownDispatchWrapperInvocation,
 } from "./exec-wrapper-resolution.js";
+
+const DEFAULT_SAFE_BINS = ["jq", "cut", "uniq", "head", "tail", "tr", "wc"];
 
 function hasShellLineContinuation(command: string): boolean {
   return /\\(?:\r\n|\n|\r)/.test(command);
@@ -40,9 +38,13 @@ export function normalizeSafeBins(entries?: string[]): Set<string> {
   return new Set(normalized);
 }
 
+let defaultSafeBinsCache: Set<string> | undefined;
 export function resolveSafeBins(entries?: string[] | null): Set<string> {
   if (entries === undefined) {
-    return normalizeSafeBins(DEFAULT_SAFE_BINS);
+    if (!defaultSafeBinsCache) {
+      defaultSafeBinsCache = normalizeSafeBins(DEFAULT_SAFE_BINS);
+    }
+    return defaultSafeBinsCache;
   }
   return normalizeSafeBins(entries ?? []);
 }
@@ -86,7 +88,7 @@ export function isSafeBinUsage(params: {
     return false;
   }
   const argv = params.argv.slice(1);
-  const safeBinProfiles = params.safeBinProfiles ?? SAFE_BIN_PROFILES;
+  const safeBinProfiles = params.safeBinProfiles ?? getSafeBinProfiles();
   const profile = safeBinProfiles[execName];
   if (!profile) {
     return false;

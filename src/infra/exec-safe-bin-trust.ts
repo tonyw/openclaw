@@ -3,7 +3,9 @@ import path from "node:path";
 
 // Keep defaults to OS-managed immutable bins only.
 // User/package-manager bins must be opted in via tools.exec.safeBinTrustedDirs.
-const DEFAULT_SAFE_BIN_TRUSTED_DIRS = ["/bin", "/usr/bin"];
+function getDefaultSafeBinTrustedDirs(): readonly string[] {
+  return ["/bin", "/usr/bin"];
+}
 
 type TrustedSafeBinDirsParams = {
   baseDirs?: readonly string[];
@@ -25,8 +27,6 @@ export type WritableTrustedSafeBinDir = {
   groupWritable: boolean;
   worldWritable: boolean;
 };
-
-let trustedSafeBinCache: TrustedSafeBinCache | null = null;
 
 function normalizeTrustedDir(value: string): string | null {
   const trimmed = value.trim();
@@ -56,7 +56,7 @@ function buildTrustedSafeBinCacheKey(entries: readonly string[]): string {
 }
 
 export function buildTrustedSafeBinDirs(params: TrustedSafeBinDirsParams = {}): Set<string> {
-  const baseDirs = params.baseDirs ?? DEFAULT_SAFE_BIN_TRUSTED_DIRS;
+  const baseDirs = params.baseDirs ?? getDefaultSafeBinTrustedDirs();
   const extraDirs = params.extraDirs ?? [];
   // Trust is explicit only. Do not derive from PATH, which is user/environment controlled.
   return new Set(
@@ -74,19 +74,22 @@ export function getTrustedSafeBinDirs(
     refresh?: boolean;
   } = {},
 ): Set<string> {
-  const baseDirs = params.baseDirs ?? DEFAULT_SAFE_BIN_TRUSTED_DIRS;
+  const baseDirs = params.baseDirs ?? getDefaultSafeBinTrustedDirs();
   const extraDirs = params.extraDirs ?? [];
   const key = buildTrustedSafeBinCacheKey([...baseDirs, ...extraDirs]);
+  const fn = getTrustedSafeBinDirs as typeof getTrustedSafeBinDirs & {
+    __cache?: TrustedSafeBinCache;
+  };
 
-  if (!params.refresh && trustedSafeBinCache?.key === key) {
-    return trustedSafeBinCache.dirs;
+  if (!params.refresh && fn.__cache?.key === key) {
+    return fn.__cache.dirs;
   }
 
   const dirs = buildTrustedSafeBinDirs({
     baseDirs,
     extraDirs,
   });
-  trustedSafeBinCache = { key, dirs };
+  fn.__cache = { key, dirs };
   return dirs;
 }
 

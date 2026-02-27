@@ -71,8 +71,11 @@ export async function resolveGatewayRuntimeConfig(params: {
       );
     }
   }
-  const controlUiEnabled =
-    params.controlUiEnabled ?? params.cfg.gateway?.controlUi?.enabled ?? true;
+  const controlUiEnabledOverride = params.controlUiEnabled;
+  const controlUiEnabledFromConfig = params.cfg.gateway?.controlUi?.enabled;
+  let controlUiEnabled = controlUiEnabledOverride ?? controlUiEnabledFromConfig ?? true;
+  const controlUiExplicitlyEnabled =
+    controlUiEnabledOverride === true || controlUiEnabledFromConfig === true;
   const openAiChatCompletionsEnabled =
     params.openAiChatCompletionsEnabled ??
     params.cfg.gateway?.http?.endpoints?.chatCompletions?.enabled ??
@@ -135,15 +138,18 @@ export async function resolveGatewayRuntimeConfig(params: {
       `refusing to bind gateway to ${bindHost}:${params.port} without auth (set gateway.auth.token/password, or set OPENCLAW_GATEWAY_TOKEN/OPENCLAW_GATEWAY_PASSWORD)`,
     );
   }
-  if (
-    controlUiEnabled &&
-    !isLoopbackHost(bindHost) &&
-    controlUiAllowedOrigins.length === 0 &&
-    !dangerouslyAllowHostHeaderOriginFallback
-  ) {
-    throw new Error(
-      "non-loopback Control UI requires gateway.controlUi.allowedOrigins (set explicit origins), or set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true to use Host-header origin fallback mode",
-    );
+  if (controlUiEnabled && !isLoopbackHost(bindHost) && controlUiAllowedOrigins.length === 0) {
+    if (dangerouslyAllowHostHeaderOriginFallback) {
+      // Explicitly opted into host-header origin fallback mode.
+    } else if (controlUiExplicitlyEnabled) {
+      throw new Error(
+        "non-loopback Control UI requires gateway.controlUi.allowedOrigins (set explicit origins), or set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback=true to use Host-header origin fallback mode",
+      );
+    } else {
+      // Backward compatibility: older configs often bind to LAN without controlUi overrides.
+      // In that case, disable Control UI instead of failing gateway startup.
+      controlUiEnabled = false;
+    }
   }
 
   if (authMode === "trusted-proxy") {

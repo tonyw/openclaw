@@ -201,13 +201,30 @@ describe("resolveGatewayRuntimeConfig", () => {
       );
     });
 
-    it("rejects non-loopback control UI when allowed origins are missing", async () => {
+    it("disables non-loopback control UI by default when allowed origins are missing", async () => {
+      const result = await resolveGatewayRuntimeConfig({
+        cfg: {
+          gateway: {
+            bind: "lan",
+            auth: TOKEN_AUTH,
+          },
+        },
+        port: 18789,
+      });
+      expect(result.bindHost).toBe("0.0.0.0");
+      expect(result.controlUiEnabled).toBe(false);
+    });
+
+    it("rejects non-loopback control UI when explicitly enabled without allowed origins", async () => {
       await expect(
         resolveGatewayRuntimeConfig({
           cfg: {
             gateway: {
               bind: "lan",
               auth: TOKEN_AUTH,
+              controlUi: {
+                enabled: true,
+              },
             },
           },
           port: 18789,
