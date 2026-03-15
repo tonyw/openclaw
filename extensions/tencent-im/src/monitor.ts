@@ -1,5 +1,5 @@
 import * as http from "http";
-import type { ChannelGatewayContext } from "../channels/plugins/types.js";
+import type { ChannelGatewayContext } from "openclaw/plugin-sdk/tencent-im";
 import { resolveTencentIMAccount } from "./accounts.js";
 import { handleTencentIMWebhook } from "./monitor-provider.js";
 import type { TencentIMWebhookEvent } from "./types.js";
@@ -59,6 +59,16 @@ export async function startTencentIMMonitor(
     });
 
     req.on("end", async () => {
+      // Log full request details for debugging
+      runtime?.log?.(`[tencent-im] [${accountId}] === Incoming Webhook Request ===`);
+      runtime?.log?.(`[tencent-im] [${accountId}] Method: ${req.method}`);
+      runtime?.log?.(`[tencent-im] [${accountId}] URL: ${req.url}`);
+      runtime?.log?.(
+        `[tencent-im] [${accountId}] Headers: ${JSON.stringify(req.headers, null, 2)}`,
+      );
+      runtime?.log?.(`[tencent-im] [${accountId}] Body: ${body}`);
+      runtime?.log?.(`[tencent-im] [${accountId}] ==========================================`);
+
       try {
         // Parse JSON body
         const event = JSON.parse(body) as TencentIMWebhookEvent;
@@ -96,36 +106,34 @@ export async function startTencentIMMonitor(
     });
   });
 
-  // 启动服务器
+  // 启动服务器并保持运行直到 abort 信号
   await new Promise<void>((resolve, reject) => {
     server.listen(port, "0.0.0.0", () => {
       runtime?.log?.(`[tencent-im] Webhook server listening on 0.0.0.0:${port}`);
       runtime?.log?.(`[tencent-im] Webhook URL: http://<your-domain>:${port}${path}`);
-      resolve();
+      // Don't resolve here - keep the promise pending until server closes
     });
 
     server.on("error", (err) => {
       runtime?.error?.(`[tencent-im] Server error: ${String(err)}`);
       reject(err);
     });
-  });
 
-  // 处理终止信号
-  const cleanup = () => {
-    runtime?.log?.(`[tencent-im] Shutting down webhook server...`);
-    server.close();
-  };
-
-  abortSignal?.addEventListener("abort", cleanup);
-
-  // 返回清理函数
-  return async () => {
-    abortSignal?.removeEventListener("abort", cleanup);
-    await new Promise<void>((resolve) => {
-      server.close(() => {
-        runtime?.log?.(`[tencent-im] Webhook server closed`);
-        resolve();
-      });
+    server.on("close", () => {
+      runtime?.log?.(`[tencent-im] Webhook server closed`);
+      resolve();
     });
-  };
+
+    // Handle abort signal
+    if (abortSignal) {
+      if (abortSignal.aborted) {
+        server.close(() => resolve());
+        return;
+      }
+      abortSignal.addEventListener("abort", () => {
+        runtime?.log?.(`[tencent-im] Abort signal received, closing server...`);
+        server.close(() => resolve());
+      });
+    }
+  });
 }

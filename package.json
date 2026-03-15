@@ -76,6 +76,10 @@
       "types": "./dist/plugin-sdk/line.d.ts",
       "default": "./dist/plugin-sdk/line.js"
     },
+    "./plugin-sdk/tencent-im": {
+      "types": "./dist/plugin-sdk/tencent-im.d.ts",
+      "default": "./dist/plugin-sdk/tencent-im.js"
+    },
     "./plugin-sdk/msteams": {
       "types": "./dist/plugin-sdk/msteams.d.ts",
       "default": "./dist/plugin-sdk/msteams.js"

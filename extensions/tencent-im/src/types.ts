@@ -2,25 +2,9 @@
  * Tencent IM types
  */
 
-import type { OpenClawConfig } from "../config/config.js";
+import type { TencentIMConfig as BaseTencentIMConfig } from "openclaw/plugin-sdk/tencent-im";
 
-export type TencentIMConfig = {
-  enabled?: boolean;
-  sdkAppId?: string;
-  secretKey?: string;
-  userSig?: string;
-  adminUserId?: string;
-  webhookPort?: number;
-  webhookPath?: string;
-  webhookSecret?: string;
-  webhookUrl?: string;
-  dmPolicy?: "open" | "pairing" | "allowlist" | "disabled";
-  allowFrom?: (string | number)[];
-  groupPolicy?: "open" | "allowlist" | "disabled";
-  groupAllowFrom?: (string | number)[];
-  requireMention?: boolean;
-  textChunkLimit?: number;
-  mediaMaxMb?: number;
+export type TencentIMConfig = BaseTencentIMConfig & {
   accounts?: Record<string, Omit<TencentIMConfig, "accounts">>;
 };
 
@@ -55,7 +39,3 @@ export type TencentIMParsedMessage = {
   atUserList?: string[];
   raw: TencentIMWebhookEvent;
 };
-
-export function getTencentIMConfig(cfg: OpenClawConfig): TencentIMConfig | undefined {
-  return cfg.channels?.["tencent-im"];
-}

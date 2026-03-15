@@ -51,6 +51,7 @@ const pluginSdkEntrypoints = [
   "imessage",
   "whatsapp",
   "line",
+  "tencent-im",
   "msteams",
   "acpx",
   "bluebubbles",

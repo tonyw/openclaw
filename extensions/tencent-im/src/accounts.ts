@@ -1,6 +1,9 @@
-import type { OpenClawConfig } from "../config/config.js";
-import type { TencentIMConfig, TencentIMAccountConfig } from "../config/types.tencent-im.js";
-import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
+import type {
+  OpenClawConfig,
+  TencentIMConfig,
+  TencentIMAccountConfig,
+} from "openclaw/plugin-sdk/tencent-im";
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk/tencent-im";
 
 export type ResolvedTencentIMAccount = {
   accountId: string;

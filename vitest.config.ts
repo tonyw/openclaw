@@ -19,6 +19,7 @@ const pluginSdkSubpaths = [
   "imessage",
   "whatsapp",
   "line",
+  "tencent-im",
   "msteams",
   "acpx",
   "bluebubbles",

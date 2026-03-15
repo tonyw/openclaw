@@ -465,6 +465,8 @@ importers:
 
   extensions/telegram: {}
 
+  extensions/tencent-im: {}
+
   extensions/tlon:
     dependencies:
       '@tloncorp/api':

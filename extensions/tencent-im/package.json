@@ -1,0 +1,26 @@
+{
+  "name": "@openclaw/tencent-im",
+  "version": "2026.3.13",
+  "private": true,
+  "description": "OpenClaw Tencent IM channel plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "tencent-im",
+      "label": "Tencent IM",
+      "selectionLabel": "Tencent IM (腾讯云IM)",
+      "docsPath": "/channels/tencent-im",
+      "docsLabel": "tencent-im",
+      "blurb": "Tencent Cloud instant messaging via REST API.",
+      "order": 80
+    },
+    "install": {
+      "npmSpec": "@openclaw/tencent-im",
+      "localPath": "extensions/tencent-im",
+      "defaultChoice": "npm"
+    }
+  }
+}

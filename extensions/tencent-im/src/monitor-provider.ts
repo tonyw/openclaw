@@ -1,12 +1,14 @@
-import { dispatchInboundMessage } from "../auto-reply/dispatch.js";
-import { formatInboundEnvelope, resolveEnvelopeFormatOptions } from "../auto-reply/envelope.js";
-import { finalizeInboundContext } from "../auto-reply/reply/inbound-context.js";
-import { createReplyDispatcher } from "../auto-reply/reply/reply-dispatcher.js";
-import { recordInboundSession } from "../channels/session.js";
-import type { OpenClawConfig } from "../config/config.js";
-import { resolveStorePath } from "../config/sessions.js";
-import { resolveAgentRoute } from "../routing/resolve-route.js";
-import type { RuntimeEnv } from "../runtime.js";
+import {
+  dispatchInboundMessage,
+  formatInboundEnvelope,
+  resolveEnvelopeFormatOptions,
+  finalizeInboundContext,
+  createReplyDispatcher,
+} from "openclaw/plugin-sdk/tencent-im";
+import { recordInboundSession } from "openclaw/plugin-sdk/tencent-im";
+import type { OpenClawConfig, RuntimeEnv } from "openclaw/plugin-sdk/tencent-im";
+import { resolveStorePath } from "openclaw/plugin-sdk/tencent-im";
+import { resolveAgentRoute } from "openclaw/plugin-sdk/tencent-im";
 import type { ResolvedTencentIMAccount } from "./accounts.js";
 import { sendMessageTencentIM } from "./send.js";
 import type { TencentIMWebhookEvent, TencentIMParsedMessage } from "./types.js";
@@ -100,7 +102,8 @@ async function checkPolicy(params: {
       return false;
     }
     if (account.groupPolicy === "allowlist") {
-      return account.groupAllowFrom.includes(message.from);
+      const allowed = account.groupAllowFrom;
+      return allowed.includes("*") || allowed.includes(message.from);
     }
     return true;
   } else {
@@ -109,7 +112,8 @@ async function checkPolicy(params: {
       return true;
     }
     if (account.dmPolicy === "pairing" || account.dmPolicy === "allowlist") {
-      return account.allowFrom.includes(message.from);
+      const allowed = account.allowFrom;
+      return allowed.includes("*") || allowed.includes(message.from);
     }
     return false;
   }

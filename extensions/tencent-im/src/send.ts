@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/tencent-im";
 import type { ResolvedTencentIMAccount } from "./accounts.js";
 import { resolveTencentIMAccount } from "./accounts.js";
 import { looksLikeGroupId, extractUserId, extractGroupId } from "./targets.js";

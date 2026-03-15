@@ -1,0 +1,9 @@
+{
+  "id": "tencent-im",
+  "channels": ["tencent-im"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

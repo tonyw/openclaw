@@ -1,16 +1,14 @@
-import {
-  normalizeTencentIMTarget,
-  looksLikeTencentIMTargetId,
-} from "../channels/plugins/normalize/tencent-im.js";
-import { tencentIMOnboardingAdapter } from "../channels/plugins/onboarding/tencent-im.js";
 import type {
   ChannelOutboundContext,
   ChannelGatewayContext,
-} from "../channels/plugins/types.adapters.js";
-import type { ChannelPlugin } from "../channels/plugins/types.js";
-import type { OutboundDeliveryResult } from "../infra/outbound/deliver.js";
+  ChannelPlugin,
+  OpenClawConfig,
+  OutboundDeliveryResult,
+} from "openclaw/plugin-sdk/tencent-im";
 import { resolveTencentIMAccount, listTencentIMAccountIds } from "./accounts.js";
 import { startTencentIMMonitor } from "./monitor.js";
+import { normalizeTencentIMTarget, looksLikeTencentIMTargetId } from "./normalize.js";
+import { tencentIMOnboardingAdapter } from "./onboarding.js";
 import { sendMessageTencentIM } from "./send.js";
 import { looksLikeGroupId } from "./targets.js";
 
@@ -69,9 +67,11 @@ export const tencentIMPlugin: ChannelPlugin = {
   meta: {
     id: "tencent-im",
     label: "Tencent IM",
-    selectionLabel: "Tencent IM",
-    docsPath: "/tencent-im",
+    selectionLabel: "Tencent IM (腾讯云IM)",
+    docsPath: "/channels/tencent-im",
     blurb: "Tencent Cloud Instant Messaging",
+    aliases: ["tim", "tencent"],
+    order: 80,
   },
   // Onboarding adapter for interactive setup
   onboarding: tencentIMOnboardingAdapter,
@@ -99,13 +99,10 @@ export const tencentIMPlugin: ChannelPlugin = {
   },
   // Config adapter
   config: {
-    listAccountIds: (cfg: import("../config/config.js").OpenClawConfig) => {
+    listAccountIds: (cfg: OpenClawConfig) => {
       return listTencentIMAccountIds(cfg);
     },
-    resolveAccount: (
-      cfg: import("../config/config.js").OpenClawConfig,
-      accountId?: string | null,
-    ) => {
+    resolveAccount: (cfg: OpenClawConfig, accountId?: string | null) => {
       return resolveTencentIMAccount({ cfg, accountId: accountId ?? undefined });
     },
   },
