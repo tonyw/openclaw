@@ -364,6 +364,8 @@ export function createOpenClawCodingTools(options?: {
     options.ownerOnlyToolAllowlist?.some((toolName) => normalizeToolName(toolName) === "cron")
       ? options.jobId.trim()
       : undefined;
+  // eslint-disable-next-line no-console
+  const _dbgT0 = Date.now();
   const {
     agentId,
     globalPolicy,
@@ -381,6 +383,9 @@ export function createOpenClawCodingTools(options?: {
     modelProvider: options?.modelProvider,
     modelId: options?.modelId,
   });
+  // eslint-disable-next-line no-console
+  console.error(`[debug-tools] resolveEffectiveToolPolicy dt=${Date.now() - _dbgT0}ms`);
+  const _dbgT1 = Date.now();
   // Prefer the already-resolved sandbox context policy. Recomputing from
   // sessionKey/config can lose the real sandbox agent when callers pass a
   // legacy alias like `main` instead of an agent session key.
@@ -399,6 +404,9 @@ export function createOpenClawCodingTools(options?: {
     senderUsername: options?.senderUsername,
     senderE164: options?.senderE164,
   });
+  // eslint-disable-next-line no-console
+  console.error(`[debug-tools] resolveGroupToolPolicy dt=${Date.now() - _dbgT1}ms`);
+  const _dbgT2 = Date.now();
   const profilePolicy = resolveToolProfilePolicy(profile);
   const providerProfilePolicy = resolveToolProfilePolicy(providerProfile);
 
@@ -418,6 +426,11 @@ export function createOpenClawCodingTools(options?: {
   const subagentStore = resolveSubagentCapabilityStore(options?.sessionKey, {
     cfg: options?.config,
   });
+  // eslint-disable-next-line no-console
+  console.error(
+    `[debug-tools] resolveSubagentCapabilityStore+profilePolicy dt=${Date.now() - _dbgT2}ms`,
+  );
+  const _dbgT3 = Date.now();
   const subagentPolicy =
     options?.sessionKey &&
     isSubagentEnvelopeSession(options.sessionKey, {
@@ -466,6 +479,9 @@ export function createOpenClawCodingTools(options?: {
     throw new Error("Sandbox filesystem bridge is unavailable.");
   }
   const imageSanitization = resolveImageSanitizationLimits(options?.config);
+  // eslint-disable-next-line no-console
+  console.error(`[debug-tools] policyAndConfig dt=${Date.now() - _dbgT3}ms`);
+  const _dbgT4 = Date.now();
 
   const base = (createCodingTools(workspaceRoot) as unknown as AnyAgentTool[]).flatMap((tool) => {
     if (tool.name === "read") {
@@ -554,6 +570,8 @@ export function createOpenClawCodingTools(options?: {
     cleanupMs: cleanupMsOverride ?? execConfig.cleanupMs,
     scopeKey,
   });
+  // eslint-disable-next-line no-console
+  console.error(`[debug-tools] base+exec+process dt=${Date.now() - _dbgT4}ms`);
   const applyPatchTool =
     !applyPatchEnabled || (sandboxRoot && !allowWorkspaceWrites)
       ? null
@@ -595,59 +613,79 @@ export function createOpenClawCodingTools(options?: {
     execTool as unknown as AnyAgentTool,
     processTool as unknown as AnyAgentTool,
     // Channel docking: include channel-defined agent tools (login, etc.).
-    ...listChannelAgentTools({ cfg: options?.config }),
-    ...createOpenClawTools({
-      sandboxBrowserBridgeUrl: sandbox?.browser?.bridgeUrl,
-      allowHostBrowserControl: sandbox ? sandbox.browserAllowHostControl : true,
-      agentSessionKey: options?.sessionKey,
-      agentChannel: resolveGatewayMessageChannel(options?.messageProvider),
-      agentAccountId: options?.agentAccountId,
-      agentTo: options?.messageTo,
-      agentThreadId: options?.messageThreadId,
-      agentGroupId: options?.groupId ?? null,
-      agentGroupChannel: options?.groupChannel ?? null,
-      agentGroupSpace: options?.groupSpace ?? null,
-      agentMemberRoleIds: options?.memberRoleIds,
-      agentDir: options?.agentDir,
-      sandboxRoot,
-      sandboxContainerWorkdir: sandbox?.containerWorkdir,
-      sandboxFsBridge,
-      fsPolicy,
-      workspaceDir: workspaceRoot,
-      spawnWorkspaceDir: options?.spawnWorkspaceDir
-        ? resolveWorkspaceRoot(options.spawnWorkspaceDir)
-        : undefined,
-      sandboxed: !!sandbox,
-      config: options?.config,
-      pluginToolAllowlist: collectExplicitAllowlist([
-        profilePolicy,
-        providerProfilePolicy,
-        globalPolicy,
-        globalProviderPolicy,
-        agentPolicy,
-        agentProviderPolicy,
-        groupPolicy,
-        sandboxToolPolicy,
-        subagentPolicy,
-      ]),
-      currentChannelId: options?.currentChannelId,
-      currentThreadTs: options?.currentThreadTs,
-      currentMessageId: options?.currentMessageId,
-      modelProvider: options?.modelProvider,
-      modelId: options?.modelId,
-      replyToMode: options?.replyToMode,
-      hasRepliedRef: options?.hasRepliedRef,
-      modelHasVision: options?.modelHasVision,
-      requireExplicitMessageTarget: options?.requireExplicitMessageTarget,
-      disableMessageTool: options?.disableMessageTool,
-      ...(cronSelfRemoveOnlyJobId ? { cronSelfRemoveOnlyJobId } : {}),
-      requesterAgentIdOverride: agentId,
-      requesterSenderId: options?.senderId,
-      senderIsOwner: options?.senderIsOwner,
-      sessionId: options?.sessionId,
-      onYield: options?.onYield,
-      allowGatewaySubagentBinding: options?.allowGatewaySubagentBinding,
-    }),
+    ...(() => {
+      const _t = Date.now();
+      const r = listChannelAgentTools({ cfg: options?.config });
+      const _dt = Date.now() - _t;
+      if (_dt > 50) {
+        /* eslint-disable-next-line no-console */ console.error(
+          `[debug-tools] listChannelAgentTools dt=${_dt}ms`,
+        );
+      }
+      return r;
+    })(),
+    ...(() => {
+      const _t = Date.now();
+      const r = createOpenClawTools({
+        sandboxBrowserBridgeUrl: sandbox?.browser?.bridgeUrl,
+        allowHostBrowserControl: sandbox ? sandbox.browserAllowHostControl : true,
+        agentSessionKey: options?.sessionKey,
+        agentChannel: resolveGatewayMessageChannel(options?.messageProvider),
+        agentAccountId: options?.agentAccountId,
+        agentTo: options?.messageTo,
+        agentThreadId: options?.messageThreadId,
+        agentGroupId: options?.groupId ?? null,
+        agentGroupChannel: options?.groupChannel ?? null,
+        agentGroupSpace: options?.groupSpace ?? null,
+        agentMemberRoleIds: options?.memberRoleIds,
+        agentDir: options?.agentDir,
+        sandboxRoot,
+        sandboxContainerWorkdir: sandbox?.containerWorkdir,
+        sandboxFsBridge,
+        fsPolicy,
+        workspaceDir: workspaceRoot,
+        spawnWorkspaceDir: options?.spawnWorkspaceDir
+          ? resolveWorkspaceRoot(options.spawnWorkspaceDir)
+          : undefined,
+        sandboxed: !!sandbox,
+        config: options?.config,
+        pluginToolAllowlist: collectExplicitAllowlist([
+          profilePolicy,
+          providerProfilePolicy,
+          globalPolicy,
+          globalProviderPolicy,
+          agentPolicy,
+          agentProviderPolicy,
+          groupPolicy,
+          sandboxToolPolicy,
+          subagentPolicy,
+        ]),
+        currentChannelId: options?.currentChannelId,
+        currentThreadTs: options?.currentThreadTs,
+        currentMessageId: options?.currentMessageId,
+        modelProvider: options?.modelProvider,
+        modelId: options?.modelId,
+        replyToMode: options?.replyToMode,
+        hasRepliedRef: options?.hasRepliedRef,
+        modelHasVision: options?.modelHasVision,
+        requireExplicitMessageTarget: options?.requireExplicitMessageTarget,
+        disableMessageTool: options?.disableMessageTool,
+        ...(cronSelfRemoveOnlyJobId ? { cronSelfRemoveOnlyJobId } : {}),
+        requesterAgentIdOverride: agentId,
+        requesterSenderId: options?.senderId,
+        senderIsOwner: options?.senderIsOwner,
+        sessionId: options?.sessionId,
+        onYield: options?.onYield,
+        allowGatewaySubagentBinding: options?.allowGatewaySubagentBinding,
+      });
+      const _dt2 = Date.now() - _t;
+      if (_dt2 > 50) {
+        /* eslint-disable-next-line no-console */ console.error(
+          `[debug-tools] createOpenClawTools dt=${_dt2}ms`,
+        );
+      }
+      return r;
+    })(),
   ];
   const toolsForMemoryFlush =
     isMemoryFlushRun && memoryFlushWritePath

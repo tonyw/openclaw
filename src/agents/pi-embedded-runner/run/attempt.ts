@@ -720,6 +720,7 @@ export async function runEmbeddedAttempt(
       params.disableTools || isRawModelRun
         ? []
         : (() => {
+            const _t0tools = Date.now();
             const allTools = createOpenClawCodingTools({
               agentId: sessionAgentId,
               ...buildEmbeddedAttemptToolRunContext({ ...params, trace: runTrace }),
@@ -783,6 +784,8 @@ export async function runEmbeddedAttempt(
                 abortSessionForYield?.();
               },
             });
+            // eslint-disable-next-line no-console
+            console.error(`[debug-tools] createOpenClawCodingTools dt=${Date.now() - _t0tools}ms`);
             return applyEmbeddedAttemptToolsAllow(allTools, params.toolsAllow);
           })();
     prepStages.mark("core-plugin-tools");

@@ -98,12 +98,28 @@ function resolvePluginToolRegistry(params: {
   loadOptions: PluginLoadOptions;
   allowGatewaySubagentBinding?: boolean;
 }) {
+  const activeRegistry0 = getActivePluginRegistry();
+  const activeRegistryKey0 = getActivePluginRegistryKey();
+  const subagentMode0 = getActivePluginRuntimeSubagentMode();
+  // eslint-disable-next-line no-console
+  console.error(
+    `[debug-tools] resolvePluginToolRegistry: binding=${params.allowGatewaySubagentBinding}, registry=${activeRegistry0 != null}, key=${activeRegistryKey0?.slice(0, 8) ?? "null"}, mode=${subagentMode0}`,
+  );
   if (
     params.allowGatewaySubagentBinding &&
     getActivePluginRegistryKey() &&
     getActivePluginRuntimeSubagentMode() === "gateway-bindable"
   ) {
     return getActivePluginRegistry() ?? resolveRuntimePluginRegistry(params.loadOptions);
+  }
+  // Fast path: reuse the already-loaded active registry when available.
+  // resolveRuntimePluginRegistry with explicit options triggers a full cacheKey
+  // comparison and may fall through to loadOpenClawPlugins (JITI + discovery)
+  // if the key doesn't match. The active registry is loaded once at gateway
+  // startup and is stable for the lifetime of the process; reusing it here
+  // avoids the per-request cold-load overhead for tool resolution.
+  if (activeRegistry0) {
+    return activeRegistry0;
   }
   return resolveRuntimePluginRegistry(params.loadOptions);
 }
@@ -169,7 +185,15 @@ export function resolvePluginTools(params: {
     }
     let resolved: AnyAgentTool | AnyAgentTool[] | null | undefined = null;
     try {
+      const _t0 = Date.now();
       resolved = entry.factory(params.context);
+      const _dt = Date.now() - _t0;
+      if (_dt > 50) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `[debug-tools] slow factory: pluginId=${entry.pluginId} names=${entry.names.join(",")} dt=${_dt}ms`,
+        );
+      }
     } catch (err) {
       context.logger.error(`plugin tool failed (${entry.pluginId}): ${String(err)}`);
       continue;

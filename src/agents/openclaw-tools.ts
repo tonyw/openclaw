@@ -139,6 +139,8 @@ export function createOpenClawTools(
     threadId: options?.agentThreadId,
   });
   const runtimeWebTools = getActiveRuntimeWebToolsMetadata();
+  // eslint-disable-next-line no-console
+  console.error(`[debug-tools] getActiveRuntimeWebToolsMetadata done`);
   const sandbox =
     options?.sandboxRoot && options?.sandboxFsBridge
       ? { root: options.sandboxRoot, bridge: options.sandboxFsBridge }
@@ -232,6 +234,8 @@ export function createOpenClawTools(
     workspaceDir,
   });
   const embedded = isEmbeddedMode();
+  // eslint-disable-next-line no-console
+  console.error(`[debug-tools] before tools array assembly`);
   const effectiveCallGateway = embedded
     ? createEmbeddedCallGateway()
     : openClawToolsDeps.callGateway;
@@ -335,16 +339,23 @@ export function createOpenClawTools(
     }),
     ...collectPresentOpenClawTools([webSearchTool, webFetchTool, imageTool, pdfTool]),
   ];
+  // eslint-disable-next-line no-console
+  console.error(`[debug-tools] after tools array assembly, tools=${tools.length}`);
 
   if (options?.disablePluginTools) {
     return tools;
   }
 
+  const _t1 = Date.now();
   const wrappedPluginTools = resolveOpenClawPluginToolsForOptions({
     options,
     resolvedConfig,
     existingToolNames: new Set(tools.map((tool) => tool.name)),
   });
+  // eslint-disable-next-line no-console
+  console.error(
+    `[debug-tools] resolveOpenClawPluginToolsForOptions dt=${Date.now() - _t1}ms tools=${wrappedPluginTools.length}`,
+  );
 
   return [...tools, ...wrappedPluginTools];
 }

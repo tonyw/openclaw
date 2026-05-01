@@ -4,6 +4,7 @@ import { normalizeLowercaseStringOrEmpty } from "../shared/string-coerce.js";
 import { resolveProviderConfigApiOwnerHint } from "./provider-config-owner.js";
 import { isPluginProvidersLoadInFlight, resolvePluginProviders } from "./providers.runtime.js";
 import { getActivePluginRegistryWorkspaceDirFromState } from "./runtime-state.js";
+import { getActivePluginRegistry } from "./runtime.js";
 import type {
   ProviderPlugin,
   ProviderExtraParamsForTransportContext,
@@ -45,13 +46,27 @@ export function resolveProviderPluginsForHooks(params: {
 }): ProviderPlugin[] {
   const env = params.env ?? process.env;
   const workspaceDir = params.workspaceDir ?? getActivePluginRegistryWorkspaceDirFromState();
+
+  // Fast path: reuse the already-loaded active registry when available.
+  // resolvePluginProviders(cache:false) re-executes full plugin discovery on
+  // every call (manifest scan, JITI loads, activation) which blocks the event
+  // loop for several seconds per request. The active registry is loaded once at
+  // gateway startup and is stable for the lifetime of the process; reusing it
+  // here avoids the per-request cold-load overhead.
+  const activeRegistry = getActivePluginRegistry();
+  if (activeRegistry) {
+    return activeRegistry.providers.map((entry) =>
+      Object.assign({}, entry.provider, { pluginId: entry.pluginId }),
+    );
+  }
+
   if (
     isPluginProvidersLoadInFlight({
       ...params,
       workspaceDir,
       env,
       activate: false,
-      cache: false,
+      cache: true,
       applyAutoEnable: params.applyAutoEnable,
       bundledProviderAllowlistCompat: params.bundledProviderAllowlistCompat ?? true,
       bundledProviderVitestCompat: params.bundledProviderVitestCompat ?? true,
@@ -65,7 +80,7 @@ export function resolveProviderPluginsForHooks(params: {
     workspaceDir,
     env,
     activate: false,
-    cache: false,
+    cache: true,
     applyAutoEnable: params.applyAutoEnable,
     bundledProviderAllowlistCompat: params.bundledProviderAllowlistCompat ?? true,
     bundledProviderVitestCompat: params.bundledProviderVitestCompat ?? true,
